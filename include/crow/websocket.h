@@ -26,10 +26,13 @@ namespace crow
             virtual void close(std::string msg = "quit") = 0;
             virtual ~connection(){}
 
+            asio::io_context *get_io_context() { return io_context_; }
+
             void userdata(void* u) { userdata_ = u; }
             void* userdata() { return userdata_; }
 
-        private:
+        protected:
+            asio::io_context *io_context_{};
             void* userdata_{};
         };
 
@@ -50,6 +53,8 @@ namespace crow
 
                 void start(const request& req)
                 {
+                    io_context_ = &adaptor_.get_io_context();
+
                     if (!utility::iequals(req.get_header_value("upgrade"), "websocket"))
                     {
                         adaptor_.close();
