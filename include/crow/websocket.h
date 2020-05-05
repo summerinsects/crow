@@ -188,7 +188,7 @@ namespace crow
                     }
                 }
 
-                void start(std::string&& hello)
+                void start(std::string hello)
                 {
                     static std::string header = "HTTP/1.1 101 Switching Protocols\r\n"
                         "Upgrade: websocket\r\n"

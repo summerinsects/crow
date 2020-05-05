@@ -904,20 +904,20 @@ public:
         {
         }
 
-        DynamicRule& new_rule_dynamic(const std::string& rule)
+        DynamicRule& new_rule_dynamic(std::string rule)
         {
-            auto ruleObject = new DynamicRule(rule);
+            auto ruleObject = new DynamicRule(std::move(rule));
             all_rules_.emplace_back(ruleObject);
 
             return *ruleObject;
         }
 
         template <uint64_t N>
-        typename black_magic::arguments<N>::type::template rebind<TaggedRule>& new_rule_tagged(const std::string& rule)
+        typename black_magic::arguments<N>::type::template rebind<TaggedRule>& new_rule_tagged(std::string rule)
         {
             using RuleT = typename black_magic::arguments<N>::type::template rebind<TaggedRule>;
 
-            auto ruleObject = new RuleT(rule);
+            auto ruleObject = new RuleT(std::move(rule));
             all_rules_.emplace_back(ruleObject);
 
             return *ruleObject;
