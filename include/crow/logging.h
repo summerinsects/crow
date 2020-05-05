@@ -46,18 +46,18 @@ namespace crow
             //
             static std::string timestamp()
             {
-                char date[32];
+                char date[64];
                 time_t t = time(0);
 
                 tm my_tm;
 
-#if defined(_MSC_VER) or defined(__MINGW32__)
-                gmtime_s(&my_tm, &t);
+#if defined(_MSC_VER) || defined(__MINGW32__)
+                localtime_s(&my_tm, &t);
 #else
-                gmtime_r(&t, &my_tm);
+                localtime_r(&t, &my_tm);
 #endif
 
-                size_t sz = strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", &my_tm);
+                size_t sz = strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S %z", &my_tm);
                 return std::string(date, date+sz);
             }
 
