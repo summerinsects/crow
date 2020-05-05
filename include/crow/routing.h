@@ -390,14 +390,14 @@ namespace crow
         }
 
         template <typename Func>
-        void operator()(Func f)
+        void operator()(Func &&f)
         {
 #ifdef CROW_MSVC_WORKAROUND
             using function_t = utility::function_traits<decltype(&Func::operator())>;
 #else
             using function_t = utility::function_traits<Func>;
 #endif
-            erased_handler_ = wrap(std::move(f), black_magic::gen_seq<function_t::arity>());
+            erased_handler_ = wrap(std::forward<Func>(f), black_magic::gen_seq<function_t::arity>());
         }
 
         // enable_if Arg1 == request && Arg2 == response
@@ -409,7 +409,7 @@ namespace crow
         template <typename Func, unsigned ... Indices>
 #endif
         std::function<void(const request&, response&, const routing_params&)>
-        wrap(Func f, black_magic::seq<Indices...>)
+        wrap(Func &&f, black_magic::seq<Indices...>)
         {
 #ifdef CROW_MSVC_WORKAROUND
             using function_t = utility::function_traits<decltype(&Func::operator())>;
@@ -426,7 +426,7 @@ namespace crow
             auto ret = detail::routing_handler_call_helper::Wrapped<Func, typename function_t::template arg<Indices>...>();
             ret.template set_<
                 typename function_t::template arg<Indices>...
-            >(std::move(f));
+            >(std::forward<Func>(f));
             return ret;
         }
 
@@ -472,12 +472,12 @@ namespace crow
 
             handler_ = (
 #ifdef CROW_CAN_USE_CPP14
-                [f = std::move(f)]
+                [f = std::forward<Func>(f)]
 #else
                 [f]
 #endif
-                (const request&, response& res, Args ... args){
-                    res = response(f(args...));
+                (const request&, response& res, Args&& ... args){
+                    res = response(f(std::forward<Args>(args)...));
                     res.end();
                 });
         }
@@ -497,12 +497,12 @@ namespace crow
 
             handler_ = (
 #ifdef CROW_CAN_USE_CPP14
-                [f = std::move(f)]
+                [f = std::forward<Func>(f)]
 #else
                 [f]
 #endif
-                (const crow::request& req, crow::response& res, Args ... args){
-                    res = response(f(req, args...));
+                (const request& req, response& res, Args&& ... args){
+                    res = response(f(req, std::forward<Args>(args)...));
                     res.end();
                 });
         }

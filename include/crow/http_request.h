@@ -56,13 +56,13 @@ namespace crow
         template<typename CompletionHandler>
         void post(CompletionHandler handler)
         {
-            io_service->post(handler);
+            io_service->post(std::forward<CompletionHandler>(handler));
         }
 
         template<typename CompletionHandler>
         void dispatch(CompletionHandler handler)
         {
-            io_service->dispatch(handler);
+            io_service->dispatch(std::forward<CompletionHandler>(handler));
         }
 
     };
