@@ -64,7 +64,7 @@ namespace crow
             case HTTPMethod::Purge:
                 return "PURGE";
             default:
-                return "invalid";
+                break;
         }
         return "invalid";
     }
