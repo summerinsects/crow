@@ -296,38 +296,33 @@ namespace crow
         }
 #endif
 
-        template <typename Func>
-        self_t& onopen(Func f)
+        self_t& onopen(std::function<void(websocket::connection&)> f)
         {
-            open_handler_ = f;
+            open_handler_ = std::move(f);
             return *this;
         }
 
-        template <typename Func>
-        self_t& onmessage(Func f)
+        self_t& onmessage(std::function<void(websocket::connection&, const std::string&, bool)> f)
         {
-            message_handler_ = f;
+            message_handler_ = std::move(f);
             return *this;
         }
 
-        template <typename Func>
-        self_t& onclose(Func f)
+        self_t& onclose(std::function<void(websocket::connection&, const std::string&)> f)
         {
-            close_handler_ = f;
+            close_handler_ = std::move(f);
             return *this;
         }
 
-        template <typename Func>
-        self_t& onerror(Func f)
+        self_t& onerror(std::function<void(websocket::connection&)> f)
         {
-            error_handler_ = f;
+            error_handler_ = std::move(f);
             return *this;
         }
 
-        template <typename Func>
-        self_t& onaccept(Func f)
+        self_t& onaccept(std::function<bool(websocket::connection&, const request&)> f)
         {
-            accept_handler_ = f;
+            accept_handler_ = std::move(f);
             return *this;
         }
 

@@ -43,9 +43,9 @@ namespace crow
                 return {};
             }
 
-            void set_cookie(const std::string& key, const std::string& value)
+            void set_cookie(std::string key, std::string value)
             {
-                cookies_to_add.emplace(key, value);
+                cookies_to_add.emplace(std::move(key), std::move(value));
             }
         };
 

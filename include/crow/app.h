@@ -74,7 +74,7 @@ namespace crow
 
         self_t& bindaddr(std::string bindaddr)
         {
-            bindaddr_ = bindaddr;
+            bindaddr_ = std::move(bindaddr);
             return *this;
         }
 
@@ -229,10 +229,10 @@ namespace crow
             return utility::get_element_by_type<T, Middlewares...>(middlewares_);
         }
 
-        template <typename Duration, typename Func>
-        self_t& tick(Duration d, Func f) {
+        template <typename Duration>
+        self_t& tick(Duration&& d, std::function<void()> f) {
             tick_interval_ = std::chrono::duration_cast<std::chrono::milliseconds>(d);
-            tick_function_ = f;
+            tick_function_ = std::move(f);
             return *this;
         }
 

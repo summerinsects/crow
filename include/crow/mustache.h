@@ -505,9 +505,9 @@ namespace crow
             std::string body_;
         };
 
-        inline template_t compile(const std::string& body)
+        inline template_t compile(std::string body)
         {
-            return template_t(body);
+            return template_t(std::move(body));
         }
 
         namespace detail

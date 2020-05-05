@@ -25,14 +25,14 @@ namespace crow
     class Server
     {
     public:
-    Server(Handler* handler, std::string bindaddr, uint16_t port, std::tuple<Middlewares...>* middlewares = nullptr, uint16_t concurrency = 1, typename Adaptor::context* adaptor_ctx = nullptr)
+        Server(Handler* handler, std::string bindaddr, uint16_t port, std::tuple<Middlewares...>* middlewares = nullptr, uint16_t concurrency = 1, typename Adaptor::context* adaptor_ctx = nullptr)
             : acceptor_(io_service_, tcp::endpoint(asio::ip::address::from_string(bindaddr), port)),
             signals_(io_service_, SIGINT, SIGTERM),
             tick_timer_(io_service_),
             handler_(handler),
             concurrency_(concurrency),
             port_(port),
-            bindaddr_(bindaddr),
+            bindaddr_(std::move(bindaddr)),
             middlewares_(middlewares),
             adaptor_ctx_(adaptor_ctx)
         {
@@ -40,8 +40,8 @@ namespace crow
 
         void set_tick_function(std::chrono::milliseconds d, std::function<void()> f)
         {
-            tick_interval_ = d;
-            tick_function_ = f;
+            tick_interval_ = std::move(d);
+            tick_function_ = std::move(f);
         }
 
         void on_tick()

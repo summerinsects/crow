@@ -86,10 +86,10 @@ namespace crow
             completed_ = false;
         }
 
-        void redirect(const std::string& location)
+        void redirect(std::string location)
         {
             code = 301;
-            set_header("Location", location);
+            set_header("Location", std::move(location));
         }
 
         void write(const std::string& body_part)
