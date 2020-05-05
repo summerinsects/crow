@@ -35,12 +35,13 @@ namespace crow
             std::unordered_map<std::string, std::string> jar;
             std::unordered_map<std::string, std::string> cookies_to_add;
 
-            std::string get_cookie(const std::string& key) const
+            const std::string &get_cookie(const std::string& key) const
             {
                 auto cookie = jar.find(key);
                 if (cookie != jar.end())
                     return cookie->second;
-                return {};
+                static std::string empty;
+                return empty;
             }
 
             void set_cookie(std::string key, std::string value)
