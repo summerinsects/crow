@@ -35,12 +35,12 @@ namespace crow
         class Connection : public connection
         {
             public:
-                Connection(const crow::request& req, Adaptor&& adaptor,
-                        std::function<void(crow::websocket::connection&)> open_handler,
-                        std::function<void(crow::websocket::connection&, std::string, bool)> message_handler,
-                        std::function<void(crow::websocket::connection&, std::string)> close_handler,
-                        std::function<void(crow::websocket::connection&)> error_handler,
-                        std::function<bool(const crow::request&)> accept_handler)
+                Connection(const request& req, Adaptor&& adaptor,
+                        std::function<void(websocket::connection&)> open_handler,
+                        std::function<void(websocket::connection&, std::string, bool)> message_handler,
+                        std::function<void(websocket::connection&, std::string)> close_handler,
+                        std::function<void(websocket::connection&)> error_handler,
+                        std::function<bool(const request&)> accept_handler)
                     : adaptor_(std::move(adaptor)), open_handler_(std::move(open_handler)), message_handler_(std::move(message_handler)), close_handler_(std::move(close_handler)), error_handler_(std::move(error_handler))
                     , accept_handler_(std::move(accept_handler))
                 {
@@ -68,7 +68,7 @@ namespace crow
                     s.processBytes(magic.data(), magic.size());
                     uint8_t digest[20];
                     s.getDigestBytes(digest);
-                    start(crow::utility::base64encode((char*)digest, 20));
+                    start(utility::base64encode((char*)digest, 20));
                 }
 
                 template<typename CompletionHandler>
@@ -524,11 +524,11 @@ namespace crow
                 bool pong_received_{false};
                 bool is_close_handler_called_{false};
 
-                std::function<void(crow::websocket::connection&)> open_handler_;
-                std::function<void(crow::websocket::connection&, std::string, bool)> message_handler_;
-                std::function<void(crow::websocket::connection&, std::string)> close_handler_;
-                std::function<void(crow::websocket::connection&)> error_handler_;
-                std::function<bool(const crow::request&)> accept_handler_;
+                std::function<void(websocket::connection&)> open_handler_;
+                std::function<void(websocket::connection&, std::string, bool)> message_handler_;
+                std::function<void(websocket::connection&, std::string)> close_handler_;
+                std::function<void(websocket::connection&)> error_handler_;
+                std::function<bool(const request&)> accept_handler_;
         };
     }
 }

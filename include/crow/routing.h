@@ -227,21 +227,21 @@ namespace crow
                 template <typename ... Args>
                 struct handler_type_helper
                 {
-                    using type = std::function<void(const crow::request&, crow::response&, Args...)>;
+                    using type = std::function<void(const request&, response&, Args...)>;
                     using args_type = black_magic::S<typename black_magic::promote_t<Args>...>;
                 };
 
                 template <typename ... Args>
                 struct handler_type_helper<const request&, Args...>
                 {
-                    using type = std::function<void(const crow::request&, crow::response&, Args...)>;
+                    using type = std::function<void(const request&, response&, Args...)>;
                     using args_type = black_magic::S<typename black_magic::promote_t<Args>...>;
                 };
 
                 template <typename ... Args>
                 struct handler_type_helper<const request&, response&, Args...>
                 {
-                    using type = std::function<void(const crow::request&, crow::response&, Args...)>;
+                    using type = std::function<void(const request&, response&, Args...)>;
                     using args_type = black_magic::S<typename black_magic::promote_t<Args>...>;
                 };
 
@@ -332,11 +332,11 @@ namespace crow
         }
 
     protected:
-        std::function<void(crow::websocket::connection&)> open_handler_;
-        std::function<void(crow::websocket::connection&, const std::string&, bool)> message_handler_;
-        std::function<void(crow::websocket::connection&, const std::string&)> close_handler_;
-        std::function<void(crow::websocket::connection&)> error_handler_;
-        std::function<bool(const crow::request&)> accept_handler_;
+        std::function<void(websocket::connection&)> open_handler_;
+        std::function<void(websocket::connection&, const std::string&, bool)> message_handler_;
+        std::function<void(websocket::connection&, const std::string&)> close_handler_;
+        std::function<void(websocket::connection&)> error_handler_;
+        std::function<bool(websocket::connection&, const request&)> accept_handler_;
     };
 
     template <typename T>
@@ -470,7 +470,7 @@ namespace crow
         operator()(Func&& f)
         {
             static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value ,
+                black_magic::CallHelper<Func, black_magic::S<request, Args...>>::value ,
                 "Handler type is mismatched with URL parameters");
             static_assert(!std::is_same<void, decltype(f(std::declval<Args>()...))>::value,
                 "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
@@ -490,14 +490,14 @@ namespace crow
         template <typename Func>
         typename std::enable_if<
             !black_magic::CallHelper<Func, black_magic::S<Args...>>::value &&
-            black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value,
+            black_magic::CallHelper<Func, black_magic::S<request, Args...>>::value,
             void>::type
         operator()(Func&& f)
         {
             static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value,
+                black_magic::CallHelper<Func, black_magic::S<request, Args...>>::value,
                 "Handler type is mismatched with URL parameters");
-            static_assert(!std::is_same<void, decltype(f(std::declval<crow::request>(), std::declval<Args>()...))>::value,
+            static_assert(!std::is_same<void, decltype(f(std::declval<request>(), std::declval<Args>()...))>::value,
                 "Handler function cannot have void return type; valid return types: string, int, crow::resposne, crow::json::wvalue");
 
             handler_ = (
@@ -515,16 +515,16 @@ namespace crow
         template <typename Func>
         typename std::enable_if<
             !black_magic::CallHelper<Func, black_magic::S<Args...>>::value &&
-            !black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value,
+            !black_magic::CallHelper<Func, black_magic::S<request, Args...>>::value,
             void>::type
         operator()(Func&& f)
         {
             static_assert(black_magic::CallHelper<Func, black_magic::S<Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, Args...>>::value ||
-                black_magic::CallHelper<Func, black_magic::S<crow::request, crow::response&, Args...>>::value
+                black_magic::CallHelper<Func, black_magic::S<request, Args...>>::value ||
+                black_magic::CallHelper<Func, black_magic::S<request, response&, Args...>>::value
                 ,
                 "Handler type is mismatched with URL parameters");
-            static_assert(std::is_same<void, decltype(f(std::declval<crow::request>(), std::declval<crow::response&>(), std::declval<Args>()...))>::value,
+            static_assert(std::is_same<void, decltype(f(std::declval<request>(), std::declval<response&>(), std::declval<Args>()...))>::value,
                 "Handler function with response argument should have void return type");
 
                 handler_ = std::move(f);
@@ -553,7 +553,7 @@ namespace crow
         }
 
     private:
-        std::function<void(const crow::request&, crow::response&, Args...)> handler_;
+        std::function<void(const request&, response&, Args...)> handler_;
 
     };
 

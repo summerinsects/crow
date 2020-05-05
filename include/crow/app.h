@@ -144,9 +144,9 @@ namespace crow
             router_.debug_print();
         }
 
-        self_t& loglevel(crow::LogLevel level)
+        self_t& loglevel(LogLevel level)
         {
-            crow::logger::setLogLevel(level);
+            logger::setLogLevel(level);
             return *this;
         }
 
