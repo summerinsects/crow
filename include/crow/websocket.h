@@ -19,9 +19,9 @@ namespace crow
 
         struct connection
         {
-            virtual void send_binary(const std::string& msg) = 0;
-            virtual void send_text(const std::string& msg) = 0;
-            virtual void close(const std::string& msg = "quit") = 0;
+            virtual void send_binary(std::string msg) = 0;
+            virtual void send_text(std::string msg) = 0;
+            virtual void close(std::string msg = "quit") = 0;
             virtual ~connection(){}
 
             void userdata(void* u) { userdata_ = u; }
@@ -37,8 +37,8 @@ namespace crow
             public:
                 Connection(const crow::request& req, Adaptor&& adaptor,
                         std::function<void(crow::websocket::connection&)> open_handler,
-                        std::function<void(crow::websocket::connection&, const std::string&, bool)> message_handler,
-                        std::function<void(crow::websocket::connection&, const std::string&)> close_handler,
+                        std::function<void(crow::websocket::connection&, std::string, bool)> message_handler,
+                        std::function<void(crow::websocket::connection&, std::string)> close_handler,
                         std::function<void(crow::websocket::connection&)> error_handler,
                         std::function<bool(const crow::request&)> accept_handler)
                     : adaptor_(std::move(adaptor)), open_handler_(std::move(open_handler)), message_handler_(std::move(message_handler)), close_handler_(std::move(close_handler)), error_handler_(std::move(error_handler))
@@ -83,55 +83,66 @@ namespace crow
                     adaptor_.get_io_service().post(handler);
                 }
 
-                void send_pong(const std::string& msg)
+                void send_pong(std::string msg)
                 {
-                    dispatch([this, msg]{
-                        char buf[3] = "\x8A\x00";
-                        buf[1] += msg.size();
-                        write_buffers_.emplace_back(buf, buf+2);
-                        write_buffers_.emplace_back(msg);
-                        do_write();
-                    });
+                    dispatch(std::bind(&Connection::do_send_pong, this, std::move(msg)));
                 }
 
-                void send_binary(const std::string& msg) override
+                void send_binary(std::string msg) override
                 {
-                    dispatch([this, msg]{
-                        auto header = build_header(2, msg.size());
-                        write_buffers_.emplace_back(std::move(header));
-                        write_buffers_.emplace_back(msg);
-                        do_write();
-                    });
+                    dispatch(std::bind(&Connection::do_send_binary, this, std::move(msg)));
                 }
 
-                void send_text(const std::string& msg) override
+                void send_text(std::string msg) override
                 {
-                    dispatch([this, msg]{
-                        auto header = build_header(1, msg.size());
-                        write_buffers_.emplace_back(std::move(header));
-                        write_buffers_.emplace_back(msg);
-                        do_write();
-                    });
+                    dispatch(std::bind(&Connection::do_send_text, this, std::move(msg)));
                 }
 
-                void close(const std::string& msg) override
+                void close(std::string msg) override
                 {
-                    dispatch([this, msg]{
-                        has_sent_close_ = true;
-                        if (has_recv_close_ && !is_close_handler_called_)
-                        {
-                            is_close_handler_called_ = true;
-                            if (close_handler_)
-                                close_handler_(*this, msg);
-                        }
-                        auto header = build_header(0x8, msg.size());
-                        write_buffers_.emplace_back(std::move(header));
-                        write_buffers_.emplace_back(msg);
-                        do_write();
-                    });
+                    dispatch(std::bind(&Connection::do_close, this, std::move(msg)));
                 }
 
             protected:
+                void do_send_pong(std::string msg)
+                {
+                    char buf[3] = "\x8A\x00";
+                    buf[1] += (uint8_t)msg.size();
+                    write_buffers_.emplace_back(buf, buf+2);
+                    write_buffers_.emplace_back(std::move(msg));
+                    do_write();
+                }
+
+                void do_send_binary(std::string msg)
+                {
+                    auto header = build_header(2, msg.size());
+                    write_buffers_.emplace_back(std::move(header));
+                    write_buffers_.emplace_back(std::move(msg));
+                    do_write();
+                }
+
+                void do_send_text(std::string msg)
+                {
+                    auto header = build_header(1, msg.size());
+                    write_buffers_.emplace_back(std::move(header));
+                    write_buffers_.emplace_back(std::move(msg));
+                    do_write();
+                }
+
+                void do_close(std::string msg)
+                {
+                    has_sent_close_ = true;
+                    if (has_recv_close_ && !is_close_handler_called_)
+                    {
+                        is_close_handler_called_ = true;
+                        if (close_handler_)
+                            close_handler_(*this, msg);
+                    }
+                    auto header = build_header(0x8, msg.size());
+                    write_buffers_.emplace_back(std::move(header));
+                    write_buffers_.emplace_back(std::move(msg));
+                    do_write();
+                }
 
                 std::string build_header(int opcode, size_t size)
                 {
@@ -139,7 +150,7 @@ namespace crow
                     buf[0] += opcode;
                     if (size < 126)
                     {
-                        buf[1] += size;
+                        buf[1] += (uint8_t)size;
                         return {buf, buf+2};
                     }
                     else if (size < 0x10000)
@@ -386,7 +397,7 @@ namespace crow
                                 if (is_FIN())
                                 {
                                     if (message_handler_)
-                                        message_handler_(*this, message_, is_binary_);
+                                        message_handler_(*this, std::move(message_), is_binary_);
                                     message_.clear();
                                 }
                             }
@@ -397,7 +408,7 @@ namespace crow
                                 if (is_FIN())
                                 {
                                     if (message_handler_)
-                                        message_handler_(*this, message_, is_binary_);
+                                        message_handler_(*this, std::move(message_), is_binary_);
                                     message_.clear();
                                 }
                             }
@@ -409,7 +420,7 @@ namespace crow
                                 if (is_FIN())
                                 {
                                     if (message_handler_)
-                                        message_handler_(*this, message_, is_binary_);
+                                        message_handler_(*this, std::move(message_), is_binary_);
                                     message_.clear();
                                 }
                             }
@@ -514,8 +525,8 @@ namespace crow
                 bool is_close_handler_called_{false};
 
                 std::function<void(crow::websocket::connection&)> open_handler_;
-                std::function<void(crow::websocket::connection&, const std::string&, bool)> message_handler_;
-                std::function<void(crow::websocket::connection&, const std::string&)> close_handler_;
+                std::function<void(crow::websocket::connection&, std::string, bool)> message_handler_;
+                std::function<void(crow::websocket::connection&, std::string)> close_handler_;
                 std::function<void(crow::websocket::connection&)> error_handler_;
                 std::function<bool(const crow::request&)> accept_handler_;
         };
