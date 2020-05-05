@@ -1,5 +1,7 @@
 #pragma once
 #include <array>
+#include <utility>
+#include "crow/settings.h"
 #include "crow/socket_adaptors.h"
 #include "crow/http_request.h"
 #include "crow/TinySHA1.hpp"
@@ -32,10 +34,10 @@ namespace crow
         };
 
         template <typename Adaptor>
-        class Connection : public connection
+        class Connection : public connection, public std::enable_shared_from_this<Connection<Adaptor>>
         {
             public:
-                Connection(const request& req, Adaptor&& adaptor,
+                Connection(Adaptor&& adaptor,
                         std::function<void(websocket::connection&)> open_handler,
                         std::function<void(websocket::connection&, std::string, bool)> message_handler,
                         std::function<void(websocket::connection&, std::string)> close_handler,
@@ -44,10 +46,13 @@ namespace crow
                     : adaptor_(std::move(adaptor)), open_handler_(std::move(open_handler)), message_handler_(std::move(message_handler)), close_handler_(std::move(close_handler)), error_handler_(std::move(error_handler))
                     , accept_handler_(std::move(accept_handler))
                 {
+                }
+
+                void start(const request& req)
+                {
                     if (!utility::iequals(req.get_header_value("upgrade"), "websocket"))
                     {
-                        adaptor.close();
-                        delete this;
+                        adaptor_.close();
                         return;
                     }
 
@@ -55,8 +60,7 @@ namespace crow
                     {
                         if (!accept_handler_(req))
                         {
-                            adaptor.close();
-                            delete this;
+                            adaptor_.close();
                             return;
                         }
                     }
@@ -74,75 +78,92 @@ namespace crow
                 template<typename CompletionHandler>
                 void dispatch(CompletionHandler handler)
                 {
-                    adaptor_.get_io_service().dispatch(handler);
+                    adaptor_.get_io_service().dispatch(std::forward<CompletionHandler>(handler));
                 }
 
                 template<typename CompletionHandler>
                 void post(CompletionHandler handler)
                 {
-                    adaptor_.get_io_service().post(handler);
+                    adaptor_.get_io_service().post(std::forward<CompletionHandler>(handler));
                 }
 
                 void send_pong(std::string msg)
                 {
-                    dispatch(std::bind(&Connection::do_send_pong, this, std::move(msg)));
+                    auto self = this->shared_from_this();
+                    dispatch(
+#ifdef CROW_CAN_USE_CPP14
+                        [this, self, msg = std::move(msg)]
+#else
+                        [this, self, msg]
+#endif
+                        {
+                        char buf[3] = "\x8A\x00";
+                        buf[1] += (uint8_t)msg.size();
+                        write_buffers_.emplace_back(buf, buf + 2);
+                        write_buffers_.emplace_back(std::move(msg));
+                        do_write();
+                    });
                 }
 
-                void send_binary(std::string msg) override
+                virtual void send_binary(std::string msg) override
                 {
-                    dispatch(std::bind(&Connection::do_send_binary, this, std::move(msg)));
+                    auto self = this->shared_from_this();
+                    dispatch(
+#ifdef CROW_CAN_USE_CPP14
+                        [this, self, msg = std::move(msg)]
+#else
+                        [this, self, msg]
+#endif
+                        {
+                        auto header = build_header(2, msg.size());
+                        write_buffers_.emplace_back(std::move(header));
+                        write_buffers_.emplace_back(std::move(msg));
+                        do_write();
+                    });
                 }
 
-                void send_text(std::string msg) override
+                virtual void send_text(std::string msg) override
                 {
-                    dispatch(std::bind(&Connection::do_send_text, this, std::move(msg)));
+                    auto self = this->shared_from_this();
+                    dispatch(
+#ifdef CROW_CAN_USE_CPP14
+                        [this, self, msg = std::move(msg)]
+#else
+                        [this, self, msg]
+#endif
+                        {
+                        auto header = build_header(1, msg.size());
+                        write_buffers_.emplace_back(std::move(header));
+                        write_buffers_.emplace_back(std::move(msg));
+                        do_write();
+                    });
                 }
 
-                void close(std::string msg) override
+                virtual void close(std::string msg) override
                 {
-                    dispatch(std::bind(&Connection::do_close, this, std::move(msg)));
+                    auto self = this->shared_from_this();
+                    dispatch(
+#ifdef CROW_CAN_USE_CPP14
+                        [this, self, msg = std::move(msg)]
+#else
+                        [this, self, msg]
+#endif
+                        {
+                        has_sent_close_ = true;
+                        if (has_recv_close_ && !is_close_handler_called_)
+                        {
+                            is_close_handler_called_ = true;
+                            if (close_handler_)
+                                close_handler_(*this, msg);
+                        }
+                        auto header = build_header(0x8, msg.size());
+                        write_buffers_.emplace_back(std::move(header));
+                        write_buffers_.emplace_back(std::move(msg));
+                        do_write();
+                    });
                 }
 
             protected:
-                void do_send_pong(std::string msg)
-                {
-                    char buf[3] = "\x8A\x00";
-                    buf[1] += (uint8_t)msg.size();
-                    write_buffers_.emplace_back(buf, buf+2);
-                    write_buffers_.emplace_back(std::move(msg));
-                    do_write();
-                }
-
-                void do_send_binary(std::string msg)
-                {
-                    auto header = build_header(2, msg.size());
-                    write_buffers_.emplace_back(std::move(header));
-                    write_buffers_.emplace_back(std::move(msg));
-                    do_write();
-                }
-
-                void do_send_text(std::string msg)
-                {
-                    auto header = build_header(1, msg.size());
-                    write_buffers_.emplace_back(std::move(header));
-                    write_buffers_.emplace_back(std::move(msg));
-                    do_write();
-                }
-
-                void do_close(std::string msg)
-                {
-                    has_sent_close_ = true;
-                    if (has_recv_close_ && !is_close_handler_called_)
-                    {
-                        is_close_handler_called_ = true;
-                        if (close_handler_)
-                            close_handler_(*this, msg);
-                    }
-                    auto header = build_header(0x8, msg.size());
-                    write_buffers_.emplace_back(std::move(header));
-                    write_buffers_.emplace_back(std::move(msg));
-                    do_write();
-                }
 
                 std::string build_header(int opcode, size_t size)
                 {
@@ -191,9 +212,10 @@ namespace crow
                     {
                         case WebSocketReadState::MiniHeader:
                             {
+                                auto self = this->shared_from_this();
                                 //asio::async_read(adaptor_.socket(), asio::buffer(&mini_header_, 1),
                                 adaptor_.socket().async_read_some(asio::buffer(&mini_header_, 2),
-                                    [this](const asio::error_code& ec, std::size_t
+                                    [this, self](const asio::error_code& ec, std::size_t
 #ifdef CROW_ENABLE_DEBUG
                                         bytes_transferred
 #endif
@@ -240,10 +262,11 @@ namespace crow
                             break;
                         case WebSocketReadState::Len16:
                             {
+                                auto self = this->shared_from_this();
                                 remaining_length_ = 0;
                                 remaining_length16_ = 0;
                                 asio::async_read(adaptor_.socket(), asio::buffer(&remaining_length16_, 2),
-                                    [this](const asio::error_code& ec, std::size_t
+                                    [this, self](const asio::error_code& ec, std::size_t
 #ifdef CROW_ENABLE_DEBUG
                                         bytes_transferred
 #endif
@@ -277,8 +300,9 @@ namespace crow
                             break;
                         case WebSocketReadState::Len64:
                             {
+                                auto self = this->shared_from_this();
                                 asio::async_read(adaptor_.socket(), asio::buffer(&remaining_length_, 8),
-                                    [this](const asio::error_code& ec, std::size_t
+                                    [this, self](const asio::error_code& ec, std::size_t
 #ifdef CROW_ENABLE_DEBUG
                                         bytes_transferred
 #endif
@@ -310,8 +334,10 @@ namespace crow
                             }
                             break;
                         case WebSocketReadState::Mask:
+                            {
+                                auto self = this->shared_from_this();
                                 asio::async_read(adaptor_.socket(), asio::buffer((char*)&mask_, 4),
-                                    [this](const asio::error_code& ec, std::size_t
+                                    [this, self](const asio::error_code& ec, std::size_t
 #ifdef CROW_ENABLE_DEBUG
                                         bytes_transferred
 #endif
@@ -338,14 +364,16 @@ namespace crow
                                             adaptor_.close();
                                         }
                                     });
+                            }
                             break;
                         case WebSocketReadState::Payload:
                             {
+                                auto self = this->shared_from_this();
                                 size_t to_read = buffer_.size();
                                 if (remaining_length_ < to_read)
                                     to_read = remaining_length_;
                                 adaptor_.socket().async_read_some( asio::buffer(buffer_, to_read),
-                                    [this](const asio::error_code& ec, std::size_t bytes_transferred)
+                                    [this, self](const asio::error_code& ec, std::size_t bytes_transferred)
                                     {
                                         is_reading = false;
 
@@ -465,6 +493,7 @@ namespace crow
                 {
                     if (sending_buffers_.empty())
                     {
+                        auto self = this->shared_from_this();
                         sending_buffers_.swap(write_buffers_);
                         std::vector<asio::const_buffer> buffers;
                         buffers.reserve(sending_buffers_.size());
@@ -473,7 +502,7 @@ namespace crow
                             buffers.emplace_back(asio::buffer(s));
                         }
                         asio::async_write(adaptor_.socket(), buffers,
-                            [&](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                            [this, self](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
                             {
                                 sending_buffers_.clear();
                                 if (!ec && !close_connection_)
@@ -498,8 +527,6 @@ namespace crow
                     if (!is_close_handler_called_)
                         if (close_handler_)
                             close_handler_(*this, "uncleanly");
-                    if (sending_buffers_.empty() && !is_reading)
-                        delete this;
                 }
             private:
                 Adaptor adaptor_;

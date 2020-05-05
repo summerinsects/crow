@@ -176,7 +176,7 @@ namespace crow
     static std::atomic<int> connectionCount;
 #endif
     template <typename Adaptor, typename Handler, typename ... Middlewares>
-    class Connection
+    class Connection : public std::enable_shared_from_this<Connection<Adaptor, Handler, Middlewares...>>
     {
     public:
         Connection(
@@ -219,16 +219,13 @@ namespace crow
 
         void start()
         {
-            adaptor_.start([this](const asio::error_code& ec) {
+            auto self = this->shared_from_this();
+            adaptor_.start([this, self](const asio::error_code& ec) {
                 if (!ec)
                 {
                     start_deadline();
 
                     do_read();
-                }
-                else
-                {
-                    check_destroy();
                 }
             });
         }
@@ -352,7 +349,6 @@ namespace crow
             if (!adaptor_.is_open())
             {
                 //CROW_LOG_DEBUG << this << " delete (socket is closed) " << is_reading << ' ' << is_writing;
-                //delete this;
                 return;
             }
 
@@ -458,10 +454,10 @@ namespace crow
     private:
         void do_read()
         {
-            //auto self = this->shared_from_this();
+            auto self = this->shared_from_this();
             is_reading = true;
             adaptor_.socket().async_read_some(asio::buffer(buffer_),
-                [this](const asio::error_code& ec, std::size_t bytes_transferred)
+                [this, self](const asio::error_code& ec, std::size_t bytes_transferred)
                 {
                     bool error_while_reading = true;
                     if (!ec)
@@ -480,14 +476,12 @@ namespace crow
                         adaptor_.close();
                         is_reading = false;
                         CROW_LOG_DEBUG << this << " from read(1)";
-                        check_destroy();
                     }
                     else if (close_connection_)
                     {
                         cancel_deadline_timer();
                         parser_.done();
                         is_reading = false;
-                        check_destroy();
                         // adaptor will close after write
                     }
                     else if (!need_to_call_after_handlers_)
@@ -505,10 +499,10 @@ namespace crow
 
         void do_write()
         {
-            //auto self = this->shared_from_this();
+            auto self = this->shared_from_this();
             is_writing = true;
             asio::async_write(adaptor_.socket(), buffers_,
-                [&](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
+                [this, self](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
                 {
                     is_writing = false;
                     res.clear();
@@ -519,25 +513,13 @@ namespace crow
                         {
                             adaptor_.close();
                             CROW_LOG_DEBUG << this << " from write(1)";
-                            check_destroy();
                         }
                     }
                     else
                     {
                         CROW_LOG_DEBUG << this << " from write(2)";
-                        check_destroy();
                     }
                 });
-        }
-
-        void check_destroy()
-        {
-            CROW_LOG_DEBUG << this << " is_reading " << is_reading << " is_writing " << is_writing;
-            if (!is_reading && !is_writing)
-            {
-                CROW_LOG_DEBUG << this << " delete (idle) ";
-                delete this;
-            }
         }
 
         void cancel_deadline_timer()
