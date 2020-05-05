@@ -11,14 +11,14 @@ namespace crow
     struct SocketAdaptor
     {
         using context = void;
-        SocketAdaptor(asio::io_service& io_service, context*)
-            : socket_(io_service)
+        SocketAdaptor(asio::io_context& io_context, context*)
+            : socket_(io_context)
         {
         }
 
-        asio::io_service& get_io_service()
+        asio::io_context& get_io_context()
         {
-            return socket_.get_io_service();
+            return reinterpret_cast<asio::io_context&>(socket_.get_executor().context());
         }
 
         tcp::socket& raw_socket()
@@ -61,8 +61,8 @@ namespace crow
     {
         using context = asio::ssl::context;
         using ssl_socket_t = asio::ssl::stream<tcp::socket>;
-        SSLAdaptor(asio::io_service& io_service, context* ctx)
-            : ssl_socket_(new ssl_socket_t(io_service, *ctx))
+        SSLAdaptor(asio::io_context& io_context, context* ctx)
+            : ssl_socket_(new ssl_socket_t(io_context, *ctx))
         {
         }
 
@@ -93,9 +93,9 @@ namespace crow
             raw_socket().close(ec);
         }
 
-        asio::io_service& get_io_service()
+        asio::io_context& get_io_context()
         {
-            return raw_socket().get_io_service();
+            return reinterpret_cast<asio::io_context&>(raw_socket().get_executor().context());
         }
 
         template <typename F>
