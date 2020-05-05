@@ -28,7 +28,7 @@ namespace crow
             void* userdata() { return userdata_; }
 
         private:
-            void* userdata_;
+            void* userdata_{};
         };
 
         template <typename Adaptor>
@@ -497,7 +497,7 @@ namespace crow
                 std::vector<std::string> write_buffers_;
 
                 std::array<char, 4096> buffer_;
-                bool is_binary_;
+                bool is_binary_{false};
                 std::string message_;
                 std::string fragment_;
                 WebSocketReadState state_{WebSocketReadState::MiniHeader};
@@ -505,8 +505,8 @@ namespace crow
                 uint64_t remaining_length_{0};
                 bool close_connection_{false};
                 bool is_reading{false};
-                uint32_t mask_;
-                uint16_t mini_header_;
+                uint32_t mask_{0};
+                uint16_t mini_header_{0};
                 bool has_sent_close_{false};
                 bool has_recv_close_{false};
                 bool error_occured_{false};
