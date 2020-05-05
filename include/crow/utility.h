@@ -545,6 +545,31 @@ template <typename F, typename Set>
             return base64encode(data, size, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_");
         }
 
+        inline static std::string rfc822_format(time_t time)
+        {
+            struct tm my_tm;
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+            gmtime_s(&my_tm, &time);
+#else
+            gmtime_r(&time, &my_tm);
+#endif
+            static const char wday_name[][4] = {
+                "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+            };
+            static const char mon_name[][4] = {
+              "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            };
+
+            char str[64];
+            int len = snprintf(str, sizeof(str), "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
+                wday_name[my_tm.tm_wday], my_tm.tm_mday, mon_name[my_tm.tm_mon], my_tm.tm_year + 1900,
+                my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec);
+            str[len] = '\0';
+            return str;
+        }
+
         // similar to boost::iequals
         inline static bool iequals(const std::string &lhs, const std::string &rhs, const std::locale &loc = std::locale())
         {
