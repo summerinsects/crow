@@ -564,9 +564,9 @@ namespace crow
     public:
         struct Node
         {
-            unsigned rule_index{};
-            std::array<unsigned, (int)ParamType::MAX> param_childrens{};
-            std::unordered_map<std::string, unsigned> children;
+            size_t rule_index{};
+            std::array<size_t, (int)ParamType::MAX> param_childrens{};
+            std::unordered_map<std::string, size_t> children;
 
             bool IsSimpleNode() const
             {
@@ -575,7 +575,7 @@ namespace crow
                     std::all_of(
                         std::begin(param_childrens),
                         std::end(param_childrens),
-                        [](unsigned x){ return !x; });
+                        [](size_t x){ return !x; });
             }
         };
 
@@ -642,13 +642,13 @@ public:
             optimize();
         }
 
-        std::pair<unsigned, routing_params> find(const std::string& req_url, const Node* node = nullptr, unsigned pos = 0, routing_params* params = nullptr) const
+        std::pair<size_t, routing_params> find(const std::string& req_url, const Node* node = nullptr, size_t pos = 0, routing_params* params = nullptr) const
         {
             routing_params empty;
             if (params == nullptr)
                 params = &empty;
 
-            unsigned found{};
+            size_t found{};
             routing_params match_params;
 
             if (node == nullptr)
@@ -656,7 +656,7 @@ public:
             if (pos == req_url.size())
                 return {node->rule_index, *params};
 
-            auto update_found = [&found, &match_params](std::pair<unsigned, routing_params>& ret)
+            auto update_found = [&found, &match_params](std::pair<size_t, routing_params>& ret)
             {
                 if (ret.first && (!found || found > ret.first))
                 {
@@ -765,11 +765,11 @@ public:
             return {found, match_params};
         }
 
-        void add(const std::string& url, unsigned rule_index)
+        void add(const std::string& url, size_t rule_index)
         {
-            unsigned idx{0};
+            size_t idx{0};
 
-            for(unsigned i = 0; i < url.size(); i ++)
+            for(size_t i = 0; i < url.size(); i ++)
             {
                 char c = url[i];
                 if (c == '<')
@@ -878,7 +878,7 @@ public:
             return &nodes_.front();
         }
 
-        unsigned new_node()
+        size_t new_node()
         {
             nodes_.resize(nodes_.size()+1);
             return nodes_.size() - 1;
@@ -968,7 +968,7 @@ public:
             auto& rules = per_method.rules;
 
             auto found = trie.find(req.url);
-            unsigned rule_index = found.first;
+            size_t rule_index = found.first;
             if (!rule_index)
             {
                 CROW_LOG_DEBUG << "Cannot match rules " << req.url << ' ' << method_name(req.method);
@@ -1031,7 +1031,7 @@ public:
 
             auto found = trie.find(req.url);
 
-            unsigned rule_index = found.first;
+            size_t rule_index = found.first;
 
             if (!rule_index)
             {

@@ -55,8 +55,8 @@ namespace crow
                                     return '0' + c;
                                 return 'a'+c-10;
                             };
-                            ret += to_hex(c/16);
-                            ret += to_hex(c%16);
+                            ret += (char)to_hex(c/16);
+                            ret += (char)to_hex(c%16);
                         }
                         else
                             ret += c;
@@ -394,18 +394,18 @@ namespace crow
                                             from_hex(head[4]);
                                         if (code >= 0x800)
                                         {
-                                            *tail++ = 0xE0 | (code >> 12);
-                                            *tail++ = 0x80 | ((code >> 6) & 0x3F);
-                                            *tail++ = 0x80 | (code & 0x3F);
+                                            *tail++ = (char)(0xE0 | (code >> 12));
+                                            *tail++ = (char)(0x80 | ((code >> 6) & 0x3F));
+                                            *tail++ = (char)(0x80 | (code & 0x3F));
                                         }
                                         else if (code >= 0x80)
                                         {
-                                            *tail++ = 0xC0 | (code >> 6);
-                                            *tail++ = 0x80 | (code & 0x3F);
+                                            *tail++ = (char)(0xC0 | (code >> 6));
+                                            *tail++ = (char)(0x80 | (code & 0x3F));
                                         }
                                         else
                                         {
-                                            *tail++ = code;
+                                            *tail++ = (char)code;
                                         }
                                         head += 4;
                                     }
@@ -607,7 +607,7 @@ namespace crow
                     for(auto& x : *this)
                         *p2++ = std::move(x);
                     l_.reset(p);
-                    lremain_ = new_size - lsize_;
+                    lremain_ = (uint16_t)(new_size - lsize_);
                 }
                 l_[lsize_++] = std::move(v);
                 lremain_ --;

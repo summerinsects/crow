@@ -21,18 +21,18 @@ int qs_strncmp(const char * s, const char * qs, size_t n);
  *  Also decodes the value portion of the k/v pair *in-place*.  In a future
  *  enhancement it will also have a compile-time option of sorting qs_kv
  *  alphabetically by key.  */
-int qs_parse(char * qs, char * qs_kv[], int qs_kv_size);
+intptr_t qs_parse(char * qs, char * qs_kv[], intptr_t qs_kv_size);
 
 
 /*  Used by qs_parse to decode the value portion of a k/v pair  */
-int qs_decode(char * qs);
+intptr_t qs_decode(char * qs);
 
 
 /*  Looks up the value according to the key on a pre-processed query string
  *  A future enhancement will be a compile-time option to look up the key
  *  in a pre-sorted qs_kv array via a binary search.  */
 //char * qs_k2v(const char * key, char * qs_kv[], int qs_kv_size);
- char * qs_k2v(const char * key, char * const * qs_kv, int qs_kv_size, int nth);
+ char * qs_k2v(const char * key, char * const * qs_kv, intptr_t qs_kv_size, intptr_t nth);
 
 
 /*  Non-destructive lookup of value, based on key.  User provides the
@@ -49,7 +49,6 @@ char * qs_scanvalue(const char * key, const char * qs, char * val, size_t val_le
 
 inline int qs_strncmp(const char * s, const char * qs, size_t n)
 {
-    int i=0;
     unsigned char u1, u2, unyb, lnyb;
 
     while(n-- > 0)
@@ -86,7 +85,6 @@ inline int qs_strncmp(const char * s, const char * qs, size_t n)
             return u1 - u2;
         if ( u1 == '\0' )
             return 0;
-        i++;
     }
     if ( CROW_QS_ISQSCHR(*qs) )
         return -1;
@@ -95,9 +93,9 @@ inline int qs_strncmp(const char * s, const char * qs, size_t n)
 }
 
 
-inline int qs_parse(char * qs, char * qs_kv[], int qs_kv_size)
+inline intptr_t qs_parse(char * qs, char * qs_kv[], intptr_t qs_kv_size)
 {
-    int i, j;
+    intptr_t i, j;
     char * substr_ptr;
 
     for(i=0; i<qs_kv_size; i++)  qs_kv[i] = NULL;
@@ -139,9 +137,9 @@ inline int qs_parse(char * qs, char * qs_kv[], int qs_kv_size)
 }
 
 
-inline int qs_decode(char * qs)
+inline intptr_t qs_decode(char * qs)
 {
-    int i=0, j=0;
+    intptr_t i=0, j=0;
 
     while( CROW_QS_ISQSCHR(qs[j]) )
     {
@@ -168,9 +166,9 @@ inline int qs_decode(char * qs)
 }
 
 
-inline char * qs_k2v(const char * key, char * const * qs_kv, int qs_kv_size, int nth = 0)
+inline char * qs_k2v(const char * key, char * const * qs_kv, intptr_t qs_kv_size, intptr_t nth = 0)
 {
-    int i;
+    intptr_t i;
     size_t key_len, skip;
 
     key_len = strlen(key);
@@ -198,9 +196,9 @@ inline char * qs_k2v(const char * key, char * const * qs_kv, int qs_kv_size, int
     return NULL;
 }
 
-inline bool qs_dict_name2kv(const char * dict_name, char * const * qs_kv, int qs_kv_size, int nth, std::pair<std::string, std::string> &element)
+inline bool qs_dict_name2kv(const char * dict_name, char * const * qs_kv, intptr_t qs_kv_size, intptr_t nth, std::pair<std::string, std::string> &element)
 {
-    int i;
+    intptr_t i;
     size_t name_len, skip_to_eq, skip_to_brace_open, skip_to_brace_close;
 
     name_len = strlen(dict_name);
@@ -337,7 +335,7 @@ namespace crow
 
             key_value_pairs_.resize(MAX_KEY_VALUE_PAIRS_COUNT);
 
-            int count = qs_parse(&url_[0], &key_value_pairs_[0], MAX_KEY_VALUE_PAIRS_COUNT);
+            intptr_t count = qs_parse(&url_[0], &key_value_pairs_[0], MAX_KEY_VALUE_PAIRS_COUNT);
             key_value_pairs_.resize(count);
         }
 

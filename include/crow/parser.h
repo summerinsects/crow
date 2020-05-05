@@ -92,7 +92,7 @@ namespace crow
         }
 
         // return false on error
-        bool feed(const char* buffer, int length)
+        bool feed(const char* buffer, size_t length)
         {
             const static http_parser_settings settings_{
                 on_message_begin,
@@ -105,7 +105,7 @@ namespace crow
                 on_message_complete,
             };
 
-            int nparsed = http_parser_execute(this, &settings_, buffer, length);
+            size_t nparsed = http_parser_execute(this, &settings_, buffer, length);
             return nparsed == length;
         }
 

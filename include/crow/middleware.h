@@ -51,7 +51,7 @@ namespace crow
 
         void before_handle(request& req, response& res, context& ctx)
         {
-            int count = req.headers.count("Cookie");
+            size_t count = req.headers.count("Cookie");
             if (!count)
                 return;
             if (count > 1)
