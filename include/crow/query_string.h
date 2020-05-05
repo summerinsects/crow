@@ -358,16 +358,16 @@ namespace crow
 
         }
 
-        char* get (const std::string& name) const
+        char* get (const char* name) const
         {
-            char* ret = qs_k2v(name.c_str(), key_value_pairs_.data(), key_value_pairs_.size());
+            char* ret = qs_k2v(name, key_value_pairs_.data(), key_value_pairs_.size());
             return ret;
         }
 
-        std::vector<char*> get_list (const std::string& name) const
+        std::vector<char*> get_list (const char* name) const
         {
             std::vector<char*> ret;
-            std::string plus = name + "[]";
+            std::string plus = std::string(name) + "[]";
             char* element = nullptr;
 
             int count = 0;
@@ -381,7 +381,7 @@ namespace crow
             return ret;
         }
 
-        std::unordered_map<std::string, std::string> get_dict (const std::string& name) const
+        std::unordered_map<std::string, std::string> get_dict (const char* name) const
         {
             std::unordered_map<std::string, std::string> ret;
 
@@ -389,7 +389,7 @@ namespace crow
             while(1)
             {
                 std::pair<std::string, std::string> element;
-                if (qs_dict_name2kv(name.c_str(), key_value_pairs_.data(), key_value_pairs_.size(), count++, element))
+                if (qs_dict_name2kv(name, key_value_pairs_.data(), key_value_pairs_.size(), count++, element))
                     ret.insert(std::move(element));
                 else
                     break;

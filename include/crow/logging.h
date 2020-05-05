@@ -30,12 +30,12 @@ namespace crow
 
     class ILogHandler {
         public:
-            virtual void log(std::string message, LogLevel level) = 0;
+            virtual void log(const char* message, LogLevel level) = 0;
     };
 
     class CerrLogHandler : public ILogHandler {
         public:
-            void log(std::string message, LogLevel /*level*/) override {
+            void log(const char* message, LogLevel /*level*/) override {
                 std::cerr << message;
             }
     };
@@ -74,7 +74,7 @@ namespace crow
     #ifdef CROW_ENABLE_LOGGING
                 if(level_ >= get_current_log_level()) {
                     stringstream_ << std::endl;
-                    get_handler_ref()->log(stringstream_.str(), level_);
+                    get_handler_ref()->log(stringstream_.str().c_str(), level_);
                 }
     #endif
             }

@@ -637,18 +637,19 @@ public:
             optimize();
         }
 
-        std::pair<size_t, routing_params> find(const std::string& req_url, const Node* node = nullptr, size_t pos = 0, routing_params* params = nullptr) const
+        std::pair<size_t, routing_params> find(const char* req_url) const
         {
-            routing_params empty;
-            if (params == nullptr)
-                params = &empty;
+            routing_params params;
+            return find(req_url, head(), &params);
+        }
 
+        std::pair<size_t, routing_params> find(const char* req_url, const Node* node, routing_params* params) const
+        {
             size_t found{};
             routing_params match_params;
 
-            if (node == nullptr)
-                node = head();
-            if (pos == req_url.size())
+            char c = *req_url;
+            if (c == '\0')
                 return {node->rule_index, *params};
 
             auto update_found = [&found, &match_params](std::pair<size_t, routing_params>& ret)
@@ -660,86 +661,87 @@ public:
                 }
             };
 
-            if (node->param_childrens[(int)ParamType::INT])
+            size_t int_param = node->param_childrens[(int)ParamType::INT];
+            if (int_param)
             {
-                char c = req_url[pos];
                 if ((c >= '0' && c <= '9') || c == '+' || c == '-')
                 {
                     char* eptr;
                     errno = 0;
-                    long long int value = strtoll(req_url.data()+pos, &eptr, 10);
-                    if (errno != ERANGE && eptr != req_url.data()+pos)
+                    long long int value = strtoll(req_url, &eptr, 10);
+                    if (errno != ERANGE && eptr != req_url)
                     {
                         params->int_params.push_back(value);
-                        auto ret = find(req_url, &nodes_[node->param_childrens[(int)ParamType::INT]], eptr - req_url.data(), params);
+                        auto ret = find(eptr, &nodes_[int_param], params);
                         update_found(ret);
                         params->int_params.pop_back();
                     }
                 }
             }
 
-            if (node->param_childrens[(int)ParamType::UINT])
+            size_t uint_param = node->param_childrens[(int)ParamType::UINT];
+            if (uint_param)
             {
-                char c = req_url[pos];
                 if ((c >= '0' && c <= '9') || c == '+')
                 {
                     char* eptr;
                     errno = 0;
-                    unsigned long long int value = strtoull(req_url.data()+pos, &eptr, 10);
-                    if (errno != ERANGE && eptr != req_url.data()+pos)
+                    unsigned long long int value = strtoull(req_url, &eptr, 10);
+                    if (errno != ERANGE && eptr != req_url)
                     {
                         params->uint_params.push_back(value);
-                        auto ret = find(req_url, &nodes_[node->param_childrens[(int)ParamType::UINT]], eptr - req_url.data(), params);
+                        auto ret = find(eptr, &nodes_[uint_param], params);
                         update_found(ret);
                         params->uint_params.pop_back();
                     }
                 }
             }
 
-            if (node->param_childrens[(int)ParamType::DOUBLE])
+            size_t double_param = node->param_childrens[(int)ParamType::DOUBLE];
+            if (double_param)
             {
-                char c = req_url[pos];
                 if ((c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.')
                 {
                     char* eptr;
                     errno = 0;
-                    double value = strtod(req_url.data()+pos, &eptr);
-                    if (errno != ERANGE && eptr != req_url.data()+pos)
+                    double value = strtod(req_url, &eptr);
+                    if (errno != ERANGE && eptr != req_url)
                     {
                         params->double_params.push_back(value);
-                        auto ret = find(req_url, &nodes_[node->param_childrens[(int)ParamType::DOUBLE]], eptr - req_url.data(), params);
+                        auto ret = find(eptr, &nodes_[double_param], params);
                         update_found(ret);
                         params->double_params.pop_back();
                     }
                 }
             }
 
-            if (node->param_childrens[(int)ParamType::STRING])
+            size_t string_param = node->param_childrens[(int)ParamType::STRING];
+            if (string_param)
             {
-                size_t epos = pos;
-                for(; epos < req_url.size(); epos ++)
+                const char* eptr = req_url;
+                for(; *eptr != '\0'; ++eptr)
                 {
-                    if (req_url[epos] == '/')
+                    if (*eptr == '/')
                         break;
                 }
 
-                if (epos != pos)
+                if (eptr != req_url)
                 {
-                    params->string_params.push_back(req_url.substr(pos, epos-pos));
-                    auto ret = find(req_url, &nodes_[node->param_childrens[(int)ParamType::STRING]], epos, params);
+                    params->string_params.push_back(std::string(req_url, eptr));
+                    auto ret = find(eptr, &nodes_[string_param], params);
                     update_found(ret);
                     params->string_params.pop_back();
                 }
             }
 
-            if (node->param_childrens[(int)ParamType::PATH])
+            size_t path_param = node->param_childrens[(int)ParamType::PATH];
+            if (path_param)
             {
-                size_t epos = req_url.size();
-
-                if (epos != pos)
+                size_t len = strlen(req_url);
+                if (len != 0)
                 {
-                    params->string_params.push_back(req_url.substr(pos, epos-pos));
-                    auto ret = find(req_url, &nodes_[node->param_childrens[(int)ParamType::PATH]], epos, params);
+                    params->string_params.push_back(req_url);
+                    auto ret = std::pair<size_t, routing_params>(nodes_[path_param].rule_index, *params);
                     update_found(ret);
                     params->string_params.pop_back();
                 }
@@ -750,9 +752,10 @@ public:
                 const std::string& fragment = kv.first;
                 const Node* child = &nodes_[kv.second];
 
-                if (req_url.compare(pos, fragment.size(), fragment) == 0)
+                size_t length = fragment.size();
+                if (strncmp(req_url, fragment.c_str(), length) == 0)
                 {
-                    auto ret = find(req_url, child, pos + fragment.size(), params);
+                    auto ret = find(req_url + length, child, params);
                     update_found(ret);
                 }
             }
@@ -760,33 +763,38 @@ public:
             return {found, match_params};
         }
 
-        void add(const std::string& url, size_t rule_index)
+        void add(const char* url, size_t rule_index)
         {
             size_t idx{0};
 
-            for(size_t i = 0; i < url.size(); i ++)
+            char c;
+            for(const char* p = url; (c = *p) != '\0'; ++p)
             {
-                char c = url[i];
                 if (c == '<')
                 {
+
+#define PARAM_NAME(s) s, sizeof(s) - 1
                     static struct ParamTraits
                     {
                         ParamType type;
-                        std::string name;
+                        const char* name;
+                        size_t length;
                     } paramTraits[] =
                     {
-                        { ParamType::INT, "<int>" },
-                        { ParamType::UINT, "<uint>" },
-                        { ParamType::DOUBLE, "<float>" },
-                        { ParamType::DOUBLE, "<double>" },
-                        { ParamType::STRING, "<str>" },
-                        { ParamType::STRING, "<string>" },
-                        { ParamType::PATH, "<path>" },
+                        { ParamType::INT, PARAM_NAME("<int>") },
+                        { ParamType::UINT, PARAM_NAME("<uint>") },
+                        { ParamType::DOUBLE, PARAM_NAME("<float>") },
+                        { ParamType::DOUBLE, PARAM_NAME("<double>") },
+                        { ParamType::STRING, PARAM_NAME("<str>") },
+                        { ParamType::STRING, PARAM_NAME("<string>") },
+                        { ParamType::PATH, PARAM_NAME("<path>") },
                     };
+#undef PARAM_NAME
 
+                    const char* q = p;
                     for(auto& x:paramTraits)
                     {
-                        if (url.compare(i, x.name.size(), x.name) == 0)
+                        if (strncmp(p, x.name, x.length) == 0)
                         {
                             if (!nodes_[idx].param_childrens[(int)x.type])
                             {
@@ -794,16 +802,23 @@ public:
                                 nodes_[idx].param_childrens[(int)x.type] = new_node_idx;
                             }
                             idx = nodes_[idx].param_childrens[(int)x.type];
-                            i += x.name.size();
+                            p += x.length;
                             break;
                         }
                     }
 
-                    i --;
+                    if (p != q)
+                    {
+                        --p;
+                    }
+                    else
+                    {
+                        throw std::runtime_error("unexpected characters after `<'");
+                    }
                 }
                 else
                 {
-                    std::string piece(&c, 1);
+                    char piece[] = { c, '\0' };
                     if (!nodes_[idx].children.count(piece))
                     {
                         auto new_node_idx = new_node();
@@ -813,7 +828,7 @@ public:
                 }
             }
             if (nodes_[idx].rule_index)
-                throw std::runtime_error("handler already exists for " + url);
+                throw std::runtime_error("handler already exists for " + std::string(url));
             nodes_[idx].rule_index = rule_index;
         }
     private:
@@ -922,13 +937,13 @@ public:
             ruleObject->foreach_method([&](int method)
                     {
                         per_methods_[method].rules.emplace_back(ruleObject);
-                        per_methods_[method].trie.add(rule, per_methods_[method].rules.size() - 1);
+                        per_methods_[method].trie.add(rule.c_str(), per_methods_[method].rules.size() - 1);
 
                         // directory case:
                         //   request to `/about' url matches `/about/' rule
                         if (has_trailing_slash)
                         {
-                            per_methods_[method].trie.add(rule_without_trailing_slash, RULE_SPECIAL_REDIRECT_SLASH);
+                            per_methods_[method].trie.add(rule_without_trailing_slash.c_str(), RULE_SPECIAL_REDIRECT_SLASH);
                         }
                     });
 
@@ -962,7 +977,7 @@ public:
             auto& trie = per_method.trie;
             auto& rules = per_method.rules;
 
-            auto found = trie.find(req.url);
+            auto found = trie.find(req.url.c_str());
             size_t rule_index = found.first;
             if (!rule_index)
             {
@@ -1024,7 +1039,7 @@ public:
             auto& trie = per_method.trie;
             auto& rules = per_method.rules;
 
-            auto found = trie.find(req.url);
+            auto found = trie.find(req.url.c_str());
 
             size_t rule_index = found.first;
 
