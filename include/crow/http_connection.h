@@ -1,8 +1,6 @@
 #pragma once
-#include <boost/asio.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/array.hpp>
+#include <asio.hpp>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <vector>
@@ -19,7 +17,6 @@
 
 namespace crow
 {
-    using namespace boost;
     using tcp = asio::ip::tcp;
 
     namespace detail
@@ -183,7 +180,7 @@ namespace crow
     {
     public:
         Connection(
-            boost::asio::io_service& io_service,
+            asio::io_service& io_service,
             Handler* handler,
             const std::string& server_name,
             std::tuple<Middlewares...>* middlewares,
@@ -222,7 +219,7 @@ namespace crow
 
         void start()
         {
-            adaptor_.start([this](const boost::system::error_code& ec) {
+            adaptor_.start([this](const asio::error_code& ec) {
                 if (!ec)
                 {
                     start_deadline();
@@ -262,7 +259,7 @@ namespace crow
                 // HTTP/1.0
                 if (req.headers.count("connection"))
                 {
-                    if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+                    if (utility::iequals(req.get_header_value("connection"),"Keep-Alive"))
                         add_keep_alive_ = true;
                 }
                 else
@@ -275,7 +272,7 @@ namespace crow
                 {
                     if (req.get_header_value("connection") == "close")
                         close_connection_ = true;
-                    else if (boost::iequals(req.get_header_value("connection"),"Keep-Alive"))
+                    else if (utility::iequals(req.get_header_value("connection"),"Keep-Alive"))
                         add_keep_alive_ = true;
                 }
                 if (!req.headers.count("host"))
@@ -299,8 +296,8 @@ namespace crow
                 }
             }
 
-            CROW_LOG_INFO << "Request: " << boost::lexical_cast<std::string>(adaptor_.remote_endpoint()) << " " << this << " HTTP/" << parser_.http_major << "." << parser_.http_minor << ' '
-             << method_name(req.method) << " " << req.url;
+            //CROW_LOG_INFO << "Request: " << boost::lexical_cast<std::string>(adaptor_.remote_endpoint()) << " " << this << " HTTP/" << parser_.http_major << "." << parser_.http_minor << ' '
+            // << method_name(req.method) << " " << req.url;
 
 
             need_to_call_after_handlers_ = false;
@@ -463,8 +460,8 @@ namespace crow
         {
             //auto self = this->shared_from_this();
             is_reading = true;
-            adaptor_.socket().async_read_some(boost::asio::buffer(buffer_),
-                [this](const boost::system::error_code& ec, std::size_t bytes_transferred)
+            adaptor_.socket().async_read_some(asio::buffer(buffer_),
+                [this](const asio::error_code& ec, std::size_t bytes_transferred)
                 {
                     bool error_while_reading = true;
                     if (!ec)
@@ -510,8 +507,8 @@ namespace crow
         {
             //auto self = this->shared_from_this();
             is_writing = true;
-            boost::asio::async_write(adaptor_.socket(), buffers_,
-                [&](const boost::system::error_code& ec, std::size_t /*bytes_transferred*/)
+            asio::async_write(adaptor_.socket(), buffers_,
+                [&](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
                 {
                     is_writing = false;
                     res.clear();
@@ -568,7 +565,7 @@ namespace crow
         Adaptor adaptor_;
         Handler* handler_;
 
-        boost::array<char, 4096> buffer_;
+        std::array<char, 4096> buffer_;
 
         HTTPParser<Connection> parser_;
         request req_;
@@ -577,13 +574,13 @@ namespace crow
         bool close_connection_ = false;
 
         const std::string& server_name_;
-        std::vector<boost::asio::const_buffer> buffers_;
+        std::vector<asio::const_buffer> buffers_;
 
         std::string content_length_;
         std::string date_str_;
         std::string res_body_copy_;
 
-        //boost::asio::deadline_timer deadline_;
+        //asio::deadline_timer deadline_;
         detail::dumb_timer_queue::key timer_cancel_key_;
 
         bool is_reading{};

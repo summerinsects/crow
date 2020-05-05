@@ -1,23 +1,22 @@
 #pragma once
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #ifdef CROW_ENABLE_SSL
-#include <boost/asio/ssl.hpp>
+#include <asio/ssl.hpp>
 #endif
 #include "crow/settings.h"
 namespace crow
 {
-    using namespace boost;
     using tcp = asio::ip::tcp;
 
     struct SocketAdaptor
     {
         using context = void;
-        SocketAdaptor(boost::asio::io_service& io_service, context*)
+        SocketAdaptor(asio::io_service& io_service, context*)
             : socket_(io_service)
         {
         }
 
-        boost::asio::io_service& get_io_service()
+        asio::io_service& get_io_service()
         {
             return socket_.get_io_service();
         }
@@ -44,14 +43,14 @@ namespace crow
 
         void close()
         {
-            boost::system::error_code ec;
+            asio::error_code ec;
             socket_.close(ec);
         }
 
         template <typename F>
         void start(F f)
         {
-            f(boost::system::error_code());
+            f(asio::error_code());
         }
 
         tcp::socket socket_;
@@ -60,14 +59,14 @@ namespace crow
 #ifdef CROW_ENABLE_SSL
     struct SSLAdaptor
     {
-        using context = boost::asio::ssl::context;
-        using ssl_socket_t = boost::asio::ssl::stream<tcp::socket>;
-        SSLAdaptor(boost::asio::io_service& io_service, context* ctx)
+        using context = asio::ssl::context;
+        using ssl_socket_t = asio::ssl::stream<tcp::socket>;
+        SSLAdaptor(asio::io_service& io_service, context* ctx)
             : ssl_socket_(new ssl_socket_t(io_service, *ctx))
         {
         }
 
-        boost::asio::ssl::stream<tcp::socket>& socket()
+        asio::ssl::stream<tcp::socket>& socket()
         {
             return *ssl_socket_;
         }
@@ -90,11 +89,11 @@ namespace crow
 
         void close()
         {
-            boost::system::error_code ec;
+            asio::error_code ec;
             raw_socket().close(ec);
         }
 
-        boost::asio::io_service& get_io_service()
+        asio::io_service& get_io_service()
         {
             return raw_socket().get_io_service();
         }
@@ -102,13 +101,13 @@ namespace crow
         template <typename F>
         void start(F f)
         {
-            ssl_socket_->async_handshake(boost::asio::ssl::stream_base::server,
-                    [f](const boost::system::error_code& ec) {
+            ssl_socket_->async_handshake(asio::ssl::stream_base::server,
+                    [f](const asio::error_code& ec) {
                         f(ec);
                     });
         }
 
-        std::unique_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket_;
+        std::unique_ptr<asio::ssl::stream<tcp::socket>> ssl_socket_;
     };
 #endif
 }

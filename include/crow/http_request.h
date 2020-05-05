@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 
 #include "crow/common.h"
 #include "crow/ci_map.h"
@@ -31,7 +31,7 @@ namespace crow
         std::string body;
 
         void* middleware_context{};
-        boost::asio::io_service* io_service{};
+        asio::io_service* io_service{};
 
         request()
             : method(HTTPMethod::Get)

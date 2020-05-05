@@ -7,12 +7,10 @@
 #include <iostream>
 #include <algorithm>
 #include <memory>
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/operators.hpp>
 #include <vector>
 
 #include "crow/settings.h"
+#include "crow/utility.h"
 
 #if defined(__GNUG__) || defined(__clang__)
 #define crow_json_likely(x) __builtin_expect(x, 1)
@@ -110,10 +108,10 @@ namespace crow
         {
 
             struct r_string
-                : boost::less_than_comparable<r_string>,
-                boost::less_than_comparable<r_string, std::string>,
-                boost::equality_comparable<r_string>,
-                boost::equality_comparable<r_string, std::string>
+                : utility::less_than_comparable<r_string>,
+                utility::less_than_comparable<r_string, std::string>,
+                utility::equality_comparable<r_string>,
+                utility::equality_comparable<r_string, std::string>
             {
                 r_string() {};
                 r_string(char* s, char* e)
@@ -186,27 +184,27 @@ namespace crow
 
             inline bool operator < (const r_string& l, const r_string& r)
             {
-                return boost::lexicographical_compare(l,r);
+                return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end());
             }
 
             inline bool operator < (const r_string& l, const std::string& r)
             {
-                return boost::lexicographical_compare(l,r);
+                return std::lexicographical_compare(l.begin(), l.end(), r.begin(), r.end());
             }
 
             inline bool operator > (const r_string& l, const std::string& r)
             {
-                return boost::lexicographical_compare(r,l);
+                return std::lexicographical_compare(r.begin(), r.end(), l.begin(), l.end());
             }
 
             inline bool operator == (const r_string& l, const r_string& r)
             {
-                return boost::equals(l,r);
+                return l.size() == r.size() && std::equal(l.begin(), l.end(), r.begin());
             }
 
             inline bool operator == (const r_string& l, const std::string& r)
             {
-                return boost::equals(l,r);
+                return l.size() == r.size() && std::equal(l.begin(), l.end(), r.begin());
             }
         }
 
@@ -317,14 +315,14 @@ namespace crow
                 switch (t()) {
                     case type::Number:
                     case type::String:
-                        return boost::lexical_cast<int64_t>(start_, end_-start_);
+                        return atoll(std::string(start_, end_-start_).c_str());
                     default:
                         const std::string msg = "expected number, got: "
                             + std::string(get_type_str(t()));
                         throw std::runtime_error(msg);
                 }
 #endif
-                return boost::lexical_cast<int64_t>(start_, end_-start_);
+                return atoll(std::string(start_, end_-start_).c_str());
             }
 
             uint64_t u() const
@@ -333,12 +331,12 @@ namespace crow
                 switch (t()) {
                     case type::Number:
                     case type::String:
-                        return boost::lexical_cast<uint64_t>(start_, end_-start_);
+                        return static_cast<uint64_t>(atoll(std::string(start_, end_-start_).c_str()));
                     default:
                         throw std::runtime_error(std::string("expected number, got: ") + get_type_str(t()));
                 }
 #endif
-                return boost::lexical_cast<uint64_t>(start_, end_-start_);
+                return static_cast<uint64_t>(atoll(std::string(start_, end_-start_).c_str()));
             }
 
             double d() const
@@ -347,7 +345,7 @@ namespace crow
                 if (t() != type::Number)
                     throw std::runtime_error("value is not number");
 #endif
-                return boost::lexical_cast<double>(start_, end_-start_);
+                return atof(std::string(start_, end_-start_).c_str());
             }
 
             bool b() const
@@ -1553,7 +1551,7 @@ namespace crow
             return ret;
         }
 
-        //std::vector<boost::asio::const_buffer> dump_ref(wvalue& v)
+        //std::vector<asio::const_buffer> dump_ref(wvalue& v)
         //{
         //}
     }

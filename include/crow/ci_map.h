@@ -1,11 +1,18 @@
 #pragma once
 
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/functional/hash.hpp>
 #include <unordered_map>
+#include "crow/utility.h"
 
 namespace crow
 {
+    namespace detail
+    {
+        static inline void hash_combine(std::size_t& lhs, std::size_t rhs)
+        {
+            lhs ^= (rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2));
+        }
+    }
+
     struct ci_hash
     {
         size_t operator()(const std::string& key) const
@@ -15,7 +22,7 @@ namespace crow
 
             for(auto c : key)
             {
-                boost::hash_combine(seed, std::toupper(c, locale));
+                detail::hash_combine(seed, std::toupper(c, locale));
             }
 
             return seed;
@@ -26,7 +33,7 @@ namespace crow
     {
         bool operator()(const std::string& l, const std::string& r) const
         {
-            return boost::iequals(l, r);
+            return utility::iequals(l, r);
         }
     };
 

@@ -6,7 +6,6 @@
 #include <vector>
 #include <unordered_map>
 #include <iostream>
-#include <boost/optional.hpp>
 
 namespace crow
 {
@@ -199,7 +198,7 @@ inline char * qs_k2v(const char * key, char * const * qs_kv, int qs_kv_size, int
     return NULL;
 }
 
-inline boost::optional<std::pair<std::string, std::string>> qs_dict_name2kv(const char * dict_name, char * const * qs_kv, int qs_kv_size, int nth = 0)
+inline bool qs_dict_name2kv(const char * dict_name, char * const * qs_kv, int qs_kv_size, int nth, std::pair<std::string, std::string> &element)
 {
     int i;
     size_t name_len, skip_to_eq, skip_to_brace_open, skip_to_brace_close;
@@ -226,9 +225,9 @@ inline boost::optional<std::pair<std::string, std::string>> qs_dict_name2kv(cons
                  skip_to_brace_close > 0 &&
                  nth == 0 )
             {
-                auto key = std::string(qs_kv[i] + skip_to_brace_open, skip_to_brace_close - skip_to_brace_open);
-                auto value = std::string(qs_kv[i] + skip_to_eq);
-                return boost::make_optional(std::make_pair(key, value));
+                element.first.assign(qs_kv[i] + skip_to_brace_open, skip_to_brace_close - skip_to_brace_open);
+                element.second.assign(qs_kv[i] + skip_to_eq);
+                return true;
             }
             else
             {
@@ -238,7 +237,7 @@ inline boost::optional<std::pair<std::string, std::string>> qs_dict_name2kv(cons
     }
 #endif  // _qsSORTING
 
-    return boost::none;
+    return false;
 }
 
 
@@ -391,8 +390,9 @@ namespace crow
             int count = 0;
             while(1)
             {
-                if (auto element = qs_dict_name2kv(name.c_str(), key_value_pairs_.data(), key_value_pairs_.size(), count++))
-                    ret.insert(*element);
+                std::pair<std::string, std::string> element;
+                if (qs_dict_name2kv(name.c_str(), key_value_pairs_.data(), key_value_pairs_.size(), count++, element))
+                    ret.insert(std::move(element));
                 else
                     break;
             }
