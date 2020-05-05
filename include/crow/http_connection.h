@@ -121,7 +121,7 @@ namespace crow
             mw.after_handle(req, res, ctx.template get<MW>());
         }
 
-        template <int N, typename Context, typename Container, typename CurrentMW, typename ... Middlewares>
+        template <size_t N, typename Context, typename Container, typename CurrentMW, typename ... Middlewares>
         bool middleware_call_helper(Container& middlewares, request& req, response& res, Context& ctx)
         {
             using parent_context_t = typename Context::template partial<N-1>;
@@ -142,32 +142,32 @@ namespace crow
             return false;
         }
 
-        template <int N, typename Context, typename Container>
+        template <size_t N, typename Context, typename Container>
         bool middleware_call_helper(Container& /*middlewares*/, request& /*req*/, response& /*res*/, Context& /*ctx*/)
         {
             return false;
         }
 
-        template <int N, typename Context, typename Container>
-        typename std::enable_if<(N<0)>::type
+        template <size_t N, typename Context, typename Container>
+        typename std::enable_if<(N==0)>::type
         after_handlers_call_helper(Container& /*middlewares*/, Context& /*context*/, request& /*req*/, response& /*res*/)
         {
         }
 
-        template <int N, typename Context, typename Container>
-        typename std::enable_if<(N==0)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res)
+        template <size_t N, typename Context, typename Container>
+        typename std::enable_if<(N==1)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res)
         {
-            using parent_context_t = typename Context::template partial<N-1>;
-            using CurrentMW = typename std::tuple_element<N, typename std::remove_reference<Container>::type>::type;
-            after_handler_call<CurrentMW, Context, parent_context_t>(std::get<N>(middlewares), req, res, ctx, static_cast<parent_context_t&>(ctx));
+            using parent_context_t = typename Context::template partial<0>;
+            using CurrentMW = typename std::tuple_element<0, typename std::remove_reference<Container>::type>::type;
+            after_handler_call<CurrentMW, Context, parent_context_t>(std::get<0>(middlewares), req, res, ctx, static_cast<parent_context_t&>(ctx));
         }
 
-        template <int N, typename Context, typename Container>
-        typename std::enable_if<(N>0)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res)
+        template <size_t N, typename Context, typename Container>
+        typename std::enable_if<(N>1)>::type after_handlers_call_helper(Container& middlewares, Context& ctx, request& req, response& res)
         {
             using parent_context_t = typename Context::template partial<N-1>;
-            using CurrentMW = typename std::tuple_element<N, typename std::remove_reference<Container>::type>::type;
-            after_handler_call<CurrentMW, Context, parent_context_t>(std::get<N>(middlewares), req, res, ctx, static_cast<parent_context_t&>(ctx));
+            using CurrentMW = typename std::tuple_element<N-1, typename std::remove_reference<Container>::type>::type;
+            after_handler_call<CurrentMW, Context, parent_context_t>(std::get<N-1>(middlewares), req, res, ctx, static_cast<parent_context_t&>(ctx));
             after_handlers_call_helper<N-1, Context, Container>(middlewares, ctx, req, res);
         }
     }
@@ -340,7 +340,7 @@ namespace crow
 
                 // call all after_handler of middlewares
                 detail::after_handlers_call_helper<
-                    ((int)sizeof...(Middlewares)-1),
+                    (sizeof...(Middlewares)),
                     decltype(ctx_),
                     decltype(*middlewares_)>
                 (*middlewares_, ctx_, req_, res);
