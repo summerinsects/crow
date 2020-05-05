@@ -144,7 +144,7 @@ enum flags
 
 
 /* Map for errno-related constants
- * 
+ *
  * The provided argument should be a macro that takes 2 arguments.
  */
 #define CROW_HTTP_ERRNO_MAP(CROW_XX)                                           \
@@ -423,7 +423,7 @@ do {                                                                 \
     FOR##_mark = NULL;                                               \
   }                                                                  \
 } while (0)
-  
+
 /* Run the data callback FOR and consume the current byte */
 #define CROW_CALLBACK_DATA(FOR)                                           \
     CROW_CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)

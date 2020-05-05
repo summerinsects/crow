@@ -123,7 +123,7 @@ namespace crow
                             init_count ++;
                             while(1)
                             {
-                                try 
+                                try
                                 {
                                     if (io_service_pool_[i]->run() == 0)
                                     {
@@ -137,7 +137,7 @@ namespace crow
                             }
                         }));
 
-            if (tick_function_ && tick_interval_.count() > 0) 
+            if (tick_function_ && tick_interval_.count() > 0)
             {
                 tick_timer_.expires_from_now(boost::posix_time::milliseconds(tick_interval_.count()));
                 tick_timer_.async_wait([this](const boost::system::error_code& ec)

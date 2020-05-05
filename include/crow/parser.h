@@ -142,10 +142,10 @@ namespace crow
             return request{(HTTPMethod)method, std::move(raw_url), std::move(url), std::move(url_params), std::move(headers), std::move(body)};
         }
 
-		bool is_upgrade() const
-		{
-			return upgrade;
-		}
+        bool is_upgrade() const
+        {
+            return upgrade;
+        }
 
         bool check_version(int major, int minor) const
         {

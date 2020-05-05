@@ -43,7 +43,7 @@ namespace crow
         {
         }
 
-		template <typename Adaptor> 
+        template <typename Adaptor>
         void handle_upgrade(const request& req, response& res, Adaptor&& adaptor)
         {
             router_.handle_upgrade(req, res, adaptor);
