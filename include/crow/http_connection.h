@@ -204,7 +204,7 @@ namespace crow
 
         ~Connection()
         {
-            res.complete_request_handler_ = nullptr;
+            res_.complete_request_handler_ = nullptr;
             cancel_deadline_timer();
 #ifdef CROW_ENABLE_DEBUG
             connectionCount --;
@@ -250,6 +250,7 @@ namespace crow
 
             req_ = std::move(parser_.to_request());
             request& req = req_;
+            response& res = res_;
 
             if (parser_.check_version(1, 0))
             {
@@ -329,7 +330,7 @@ namespace crow
 
         void complete_request()
         {
-            CROW_LOG_INFO << "Response: " << this << ' ' << req_.raw_url << ' ' << res.code << ' ' << close_connection_;
+            CROW_LOG_INFO << "Response: " << this << ' ' << req_.raw_url << ' ' << res_.code << ' ' << close_connection_;
 
             if (need_to_call_after_handlers_)
             {
@@ -340,11 +341,11 @@ namespace crow
                     (sizeof...(Middlewares)),
                     decltype(ctx_),
                     decltype(*middlewares_)>
-                (*middlewares_, ctx_, req_, res);
+                (*middlewares_, ctx_, req_, res_);
             }
 
             //auto self = this->shared_from_this();
-            res.complete_request_handler_ = nullptr;
+            res_.complete_request_handler_ = nullptr;
 
             if (!adaptor_.is_open())
             {
@@ -381,24 +382,24 @@ namespace crow
             static std::string crlf = "\r\n";
 
             buffers_.clear();
-            buffers_.reserve(4*(res.headers.size()+5)+3);
+            buffers_.reserve(4*(res_.headers.size()+5)+3);
 
-            if (res.body.empty() && res.json_value.t() == json::type::Object)
+            if (res_.body.empty() && res_.json_value.t() == json::type::Object)
             {
-                res.body = json::dump(res.json_value);
+                res_.body = json::dump(res_.json_value);
             }
 
-            if (!statusCodes.count(res.code))
-                res.code = 500;
+            if (!statusCodes.count(res_.code))
+                res_.code = 500;
             {
-                auto& status = statusCodes.find(res.code)->second;
+                auto& status = statusCodes.find(res_.code)->second;
                 buffers_.emplace_back(status.data(), status.size());
             }
 
-            if (res.code >= 400 && res.body.empty())
-                res.body = statusCodes[res.code].substr(9);
+            if (res_.code >= 400 && res_.body.empty())
+                res_.body = statusCodes[res_.code].substr(9);
 
-            for(auto& kv : res.headers)
+            for(auto& kv : res_.headers)
             {
                 buffers_.emplace_back(kv.first.data(), kv.first.size());
                 buffers_.emplace_back(seperator.data(), seperator.size());
@@ -407,22 +408,24 @@ namespace crow
 
             }
 
-            if (!res.headers.count("content-length"))
+            if (!res_.headers.count("content-length"))
             {
-                content_length_ = std::to_string(res.body.size());
+                content_length_ = std::to_string(res_.body.size());
                 static std::string content_length_tag = "Content-Length: ";
                 buffers_.emplace_back(content_length_tag.data(), content_length_tag.size());
                 buffers_.emplace_back(content_length_.data(), content_length_.size());
                 buffers_.emplace_back(crlf.data(), crlf.size());
             }
-            if (!res.headers.count("server"))
+
+            if (!res_.headers.count("server"))
             {
                 static std::string server_tag = "Server: ";
                 buffers_.emplace_back(server_tag.data(), server_tag.size());
                 buffers_.emplace_back(server_name_.data(), server_name_.size());
                 buffers_.emplace_back(crlf.data(), crlf.size());
             }
-            if (!res.headers.count("date"))
+
+            if (!res_.headers.count("date"))
             {
                 static std::string date_tag = "Date: ";
                 date_str_ = get_cached_date_str();
@@ -430,6 +433,7 @@ namespace crow
                 buffers_.emplace_back(date_str_.data(), date_str_.size());
                 buffers_.emplace_back(crlf.data(), crlf.size());
             }
+
             if (add_keep_alive_)
             {
                 static std::string keep_alive_tag = "Connection: Keep-Alive";
@@ -438,7 +442,8 @@ namespace crow
             }
 
             buffers_.emplace_back(crlf.data(), crlf.size());
-            res_body_copy_.swap(res.body);
+
+            res_body_copy_.swap(res_.body);
             buffers_.emplace_back(res_body_copy_.data(), res_body_copy_.size());
 
             do_write();
@@ -505,7 +510,7 @@ namespace crow
                 [this, self](const asio::error_code& ec, std::size_t /*bytes_transferred*/)
                 {
                     is_writing = false;
-                    res.clear();
+                    res_.clear();
                     res_body_copy_.clear();
                     if (!ec)
                     {
@@ -551,7 +556,7 @@ namespace crow
 
         HTTPParser<Connection> parser_;
         request req_;
-        response res;
+        response res_;
 
         bool close_connection_ = false;
 
