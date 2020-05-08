@@ -831,6 +831,8 @@ public:
                 throw std::runtime_error("handler already exists for " + std::string(url));
             nodes_[idx].rule_index = rule_index;
         }
+
+#ifdef CROW_ENABLE_DEBUG
     private:
         void debug_node_print(Node* n, int level)
         {
@@ -876,6 +878,7 @@ public:
         {
             debug_node_print(head(), 0);
         }
+#endif
 
     private:
         const Node* head() const
@@ -1095,6 +1098,7 @@ public:
             }
         }
 
+#ifdef CROW_ENABLE_DEBUG
         void debug_print()
         {
             for(int i = 0; i < (int)HTTPMethod::InternalMethodCount; i ++)
@@ -1103,6 +1107,7 @@ public:
                 per_methods_[i].trie.debug_print();
             }
         }
+#endif
 
     private:
         struct PerMethod

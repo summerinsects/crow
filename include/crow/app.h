@@ -138,11 +138,13 @@ namespace crow
             }
         }
 
+#ifdef CROW_ENABLE_DEBUG
         void debug_print()
         {
             CROW_LOG_DEBUG << "Routing:";
             router_.debug_print();
         }
+#endif
 
         self_t& loglevel(LogLevel level)
         {

@@ -88,6 +88,7 @@ namespace crow
         std::vector<double> double_params;
         std::vector<std::string> string_params;
 
+#ifdef CROW_ENABLE_DEBUG
         void debug_print() const
         {
             std::cerr << "routing_params" << std::endl;
@@ -104,6 +105,7 @@ namespace crow
                 std::cerr<<i <<", " ;
             std::cerr<<std::endl;
         }
+#endif
 
         template <typename T>
         T get(unsigned) const;
