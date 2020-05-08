@@ -819,7 +819,7 @@ public:
                 else
                 {
                     char piece[] = { c, '\0' };
-                    if (!nodes_[idx].children.count(piece))
+                    if (nodes_[idx].children.find(piece) == nodes_[idx].children.end())
                     {
                         auto new_node_idx = new_node();
                         nodes_[idx].children.emplace(piece, new_node_idx);

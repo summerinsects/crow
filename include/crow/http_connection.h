@@ -255,9 +255,10 @@ namespace crow
             if (parser_.check_version(1, 0))
             {
                 // HTTP/1.0
-                if (req.headers.count(HTTPField::Connection))
+                auto it = req.headers.find(HTTPField::Connection);
+                if (it != req.headers.end())
                 {
-                    if (utility::iequals(req.get_header_value(HTTPField::Connection),"Keep-Alive"))
+                    if (utility::iequals(it->second, "Keep-Alive"))
                         add_keep_alive_ = true;
                 }
                 else
@@ -266,15 +267,17 @@ namespace crow
             else if (parser_.check_version(1, 1))
             {
                 // HTTP/1.1
-                if (req.headers.count(HTTPField::Connection))
+                auto it = req.headers.find(HTTPField::Connection);
+                if (it != req.headers.end())
                 {
-                    if (req.get_header_value(HTTPField::Connection) == "close")
+                    if (it->second == "close")
                         close_connection_ = true;
-                    else if (utility::iequals(req.get_header_value(HTTPField::Connection),"Keep-Alive"))
+                    else if (utility::iequals(it->second, "Keep-Alive"))
                         add_keep_alive_ = true;
                 }
 
-                if (!req.headers.count(HTTPField::Host))
+                it = req.headers.find(HTTPField::Host);
+                if (it == req.headers.end())
                 {
                     is_invalid_request = true;
                     res = response(400);
@@ -282,7 +285,8 @@ namespace crow
 
                 if (parser_.is_upgrade())
                 {
-                    if (req.get_header_value(HTTPField::Upgrade) == "h2c")
+                    it = req.headers.find(HTTPField::Upgrade);
+                    if (it != req.headers.end() && it->second == "h2c")
                     {
                         // TODO HTTP/2
                         // currently, ignore upgrade header
@@ -386,7 +390,7 @@ namespace crow
             buffers_.clear();
             buffers_.reserve(4*(res_.headers.size()+5)+3);
 
-            if (!statusCodes.count(res_.code))
+            if (statusCodes.find(res_.code) == statusCodes.end())
                 res_.code = 500;
 
             {
@@ -406,7 +410,7 @@ namespace crow
                 buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count(HTTPField::Content_Length))
+            if (res_.headers.find(HTTPField::Content_Length) == res_.headers.end())
             {
                 content_length_ = std::to_string(res_.body.size());
                 static const char content_length_tag[] = "Content-Length: ";
@@ -415,7 +419,7 @@ namespace crow
                 buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count(HTTPField::Server))
+            if (res_.headers.find(HTTPField::Server) == res_.headers.end())
             {
                 static const char server_tag[] = "Server: ";
                 buffers_.emplace_back(server_tag, sizeof(server_tag) - 1);
@@ -423,7 +427,7 @@ namespace crow
                 buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count(HTTPField::Date))
+            if (res_.headers.find(HTTPField::Date) == res_.headers.end())
             {
                 static const char date_tag[] = "Date: ";
                 date_str_ = get_cached_date_str();

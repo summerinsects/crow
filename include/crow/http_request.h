@@ -10,9 +10,10 @@ namespace crow
     template <typename T>
     inline const std::string& get_header_value(const T& headers, HTTPField key)
     {
-        if (headers.count(key))
+        auto it = headers.find(key);
+        if (it != headers.end())
         {
-            return headers.find(key)->second;
+            return it->second;
         }
         static std::string empty;
         return empty;
