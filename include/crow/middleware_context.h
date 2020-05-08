@@ -27,7 +27,7 @@ namespace crow
         template <>
         struct partial_context<>
         {
-            template <int>
+            template <size_t>
             using partial = partial_context;
         };
 

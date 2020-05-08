@@ -452,7 +452,7 @@ template <typename F, typename Set>
         template <class T, class... Args>
         T& get_element_by_type(std::tuple<Args...>& t)
         {
-            return std::get<detail::get_index_of_element_from_tuple_by_type_impl<T, 0, Args...>::value>(t);
+            return std::get<::crow::detail::get_index_of_element_from_tuple_by_type_impl<T, 0, Args...>::value>(t);
         }
 
         template<typename T>
