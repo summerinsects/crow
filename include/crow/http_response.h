@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "crow/http_request.h"
-#include "crow/ci_map.h"
+#include "crow/common.h"
 #include "crow/json_traits.h"
 
 namespace crow
@@ -19,20 +19,20 @@ namespace crow
         std::string body;
 
         // `headers' stores HTTP headers.
-        ci_map headers;
+        std::unordered_multimap<HTTPField, std::string> headers;
 
-        void set_header(std::string key, std::string value)
+        void set_header(HTTPField key, std::string value)
         {
             headers.erase(key);
-            headers.emplace(std::move(key), std::move(value));
+            headers.emplace(key, std::move(value));
         }
 
-        void add_header(std::string key, std::string value)
+        void add_header(HTTPField key, std::string value)
         {
-            headers.emplace(std::move(key), std::move(value));
+            headers.emplace(key, std::move(value));
         }
 
-        const std::string& get_header_value(const std::string& key)
+        const std::string& get_header_value(HTTPField key)
         {
             return crow::get_header_value(headers, key);
         }
@@ -50,7 +50,7 @@ namespace crow
             >::value>>
         response(const T& json) : body(json_traits<T>::dump(json))
         {
-            set_header("Content-Type", "application/json");
+            set_header(HTTPField::Content_Type, "application/json");
         }
 
         response(response&& r)
@@ -85,7 +85,7 @@ namespace crow
         void redirect(std::string location)
         {
             code = 301;
-            set_header("Location", std::move(location));
+            set_header(HTTPField::Location, std::move(location));
         }
 
         void write(const std::string& body_part)

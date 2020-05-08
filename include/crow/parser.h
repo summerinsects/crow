@@ -32,7 +32,7 @@ namespace crow
                 case 0:
                     if (!self->header_value.empty())
                     {
-                        self->headers.emplace(std::move(self->header_field), std::move(self->header_value));
+                        self->headers.emplace(string_to_field(self->header_field.c_str()), std::move(self->header_value));
                     }
                     self->header_field.assign(at, at+length);
                     self->header_building_state = 1;
@@ -63,7 +63,7 @@ namespace crow
             HTTPParser* self = static_cast<HTTPParser*>(self_);
             if (!self->header_field.empty())
             {
-                self->headers.emplace(std::move(self->header_field), std::move(self->header_value));
+                self->headers.emplace(string_to_field(self->header_field.c_str()), std::move(self->header_value));
             }
             self->process_header();
             return 0;
@@ -157,7 +157,7 @@ namespace crow
         int header_building_state = 0;
         std::string header_field;
         std::string header_value;
-        ci_map headers;
+        std::unordered_multimap<HTTPField, std::string> headers;
         query_string url_params;
         std::string body;
 

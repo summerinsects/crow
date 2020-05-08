@@ -570,8 +570,38 @@ template <typename F, typename Set>
             return str;
         }
 
+        class str_ref {
+        public:
+            typedef const char *iterator;
+            typedef const char *const_iterator;
+
+            str_ref(const char *s) : ptr_(s), len_(strlen(s)) { }
+            str_ref(const std::string &s) : ptr_(s.c_str()), len_(s.length()) { }
+            str_ref(const str_ref &other) : ptr_(other.ptr_), len_(other.len_) { }
+            str_ref(str_ref &&other) : ptr_(other.ptr_), len_(other.len_) { }
+
+            template <size_t N>
+            str_ref(const char (&s)[N]) : ptr_(s), len_(N - 1) {
+                static_assert(N > 0, "");
+            }
+
+            const char *data() const { return ptr_; }
+            size_t size() const { return len_; }
+            size_t length() const { return len_; }
+
+            iterator begin() { return ptr_; }
+            iterator end() { return ptr_ + len_; }
+
+            const_iterator begin() const { return ptr_; }
+            const_iterator end() const { return ptr_ + len_; }
+
+        private:
+            const char *ptr_;
+            size_t len_;
+        };
+
         // similar to boost::iequals
-        inline static bool iequals(const std::string &lhs, const std::string &rhs, const std::locale &loc = std::locale())
+        inline static bool iequals(const str_ref &lhs, const str_ref &rhs, const std::locale &loc = std::locale())
         {
             if (lhs.length() != rhs.length()) return false;
             return std::equal(lhs.begin(), lhs.end(), rhs.begin(), [&loc](char a, char b) { return std::toupper(a, loc) == std::toupper(b, loc); });

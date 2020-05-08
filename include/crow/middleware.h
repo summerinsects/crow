@@ -52,7 +52,7 @@ namespace crow
 
         void before_handle(request& req, response& res, context& ctx)
         {
-            size_t count = req.headers.count("Cookie");
+            size_t count = req.headers.count(HTTPField::Cookie);
             if (!count)
                 return;
             if (count > 1)
@@ -61,7 +61,7 @@ namespace crow
                 res.end();
                 return;
             }
-            std::string cookies = req.get_header_value("Cookie");
+            std::string cookies = req.get_header_value(HTTPField::Cookie);
             size_t pos = 0;
             while(pos < cookies.size())
             {
@@ -99,9 +99,9 @@ namespace crow
             for(auto& cookie:ctx.cookies_to_add)
             {
                 if (cookie.second.empty())
-                    res.add_header("Set-Cookie", cookie.first + "=\"\"");
+                    res.add_header(HTTPField::Set_Cookie, cookie.first + "=\"\"");
                 else
-                    res.add_header("Set-Cookie", cookie.first + "=" + cookie.second);
+                    res.add_header(HTTPField::Set_Cookie, cookie.first + "=" + cookie.second);
             }
         }
     };

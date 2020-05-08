@@ -55,7 +55,7 @@ namespace crow
                 {
                     io_context_ = &adaptor_.get_io_context();
 
-                    if (!utility::iequals(req.get_header_value("upgrade"), "websocket"))
+                    if (!utility::iequals(req.get_header_value(HTTPField::Upgrade), "websocket"))
                     {
                         adaptor_.close();
                         return;
@@ -72,7 +72,7 @@ namespace crow
 
                     // Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
                     // Sec-WebSocket-Version: 13
-                    std::string magic = req.get_header_value("Sec-WebSocket-Key") +  "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                    std::string magic = req.get_header_value(HTTPField::Sec_WebSocket_Key) +  "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
                     sha1::SHA1 s;
                     s.processBytes(magic.data(), magic.size());
                     uint8_t digest[20];

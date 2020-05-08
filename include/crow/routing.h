@@ -996,13 +996,13 @@ public:
                 res = response(301);
 
                 // TODO absolute url building
-                if (req.get_header_value("Host").empty())
+                if (req.get_header_value(HTTPField::Host).empty())
                 {
-                    res.add_header("Location", req.url + "/");
+                    res.add_header(HTTPField::Location, req.url + "/");
                 }
                 else
                 {
-                    res.add_header("Location", "http://" + req.get_header_value("Host") + req.url + "/");
+                    res.add_header(HTTPField::Location, "http://" + req.get_header_value(HTTPField::Host) + req.url + "/");
                 }
                 res.end();
                 return;
@@ -1060,13 +1060,13 @@ public:
                 res = response(301);
 
                 // TODO absolute url building
-                if (req.get_header_value("Host").empty())
+                if (req.get_header_value(HTTPField::Host).empty())
                 {
-                    res.add_header("Location", req.url + "/");
+                    res.add_header(HTTPField::Location, req.url + "/");
                 }
                 else
                 {
-                    res.add_header("Location", "http://" + req.get_header_value("Host") + req.url + "/");
+                    res.add_header(HTTPField::Location, "http://" + req.get_header_value(HTTPField::Host) + req.url + "/");
                 }
                 res.end();
                 return;

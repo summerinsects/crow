@@ -233,11 +233,11 @@ namespace crow
         void handle_header()
         {
             // HTTP 1.1 Expect: 100-continue
-            if (parser_.check_version(1, 1) && parser_.headers.count("expect") && get_header_value(parser_.headers, "expect") == "100-continue")
+            if (parser_.check_version(1, 1) && parser_.headers.count(HTTPField::Expect) && get_header_value(parser_.headers, HTTPField::Expect) == "100-continue")
             {
                 buffers_.clear();
-                static std::string expect_100_continue = "HTTP/1.1 100 Continue\r\n\r\n";
-                buffers_.emplace_back(expect_100_continue.data(), expect_100_continue.size());
+                static const char expect_100_continue[] = "HTTP/1.1 100 Continue\r\n\r\n";
+                buffers_.emplace_back(expect_100_continue, sizeof(expect_100_continue) - 1);
                 do_write();
             }
         }
@@ -255,9 +255,9 @@ namespace crow
             if (parser_.check_version(1, 0))
             {
                 // HTTP/1.0
-                if (req.headers.count("connection"))
+                if (req.headers.count(HTTPField::Connection))
                 {
-                    if (utility::iequals(req.get_header_value("connection"),"Keep-Alive"))
+                    if (utility::iequals(req.get_header_value(HTTPField::Connection),"Keep-Alive"))
                         add_keep_alive_ = true;
                 }
                 else
@@ -266,21 +266,23 @@ namespace crow
             else if (parser_.check_version(1, 1))
             {
                 // HTTP/1.1
-                if (req.headers.count("connection"))
+                if (req.headers.count(HTTPField::Connection))
                 {
-                    if (req.get_header_value("connection") == "close")
+                    if (req.get_header_value(HTTPField::Connection) == "close")
                         close_connection_ = true;
-                    else if (utility::iequals(req.get_header_value("connection"),"Keep-Alive"))
+                    else if (utility::iequals(req.get_header_value(HTTPField::Connection),"Keep-Alive"))
                         add_keep_alive_ = true;
                 }
-                if (!req.headers.count("host"))
+
+                if (!req.headers.count(HTTPField::Host))
                 {
                     is_invalid_request = true;
                     res = response(400);
                 }
+
                 if (parser_.is_upgrade())
                 {
-                    if (req.get_header_value("upgrade") == "h2c")
+                    if (req.get_header_value(HTTPField::Upgrade) == "h2c")
                     {
                         // TODO HTTP/2
                         // currently, ignore upgrade header
@@ -315,7 +317,7 @@ namespace crow
                     need_to_call_after_handlers_ = true;
                     handler_->handle(req, res);
                     if (add_keep_alive_)
-                        res.set_header("connection", "Keep-Alive");
+                        res.set_header(HTTPField::Connection, "Keep-Alive");
                 }
                 else
                 {
@@ -378,8 +380,8 @@ namespace crow
                 {503, "HTTP/1.1 503 Service Unavailable\r\n"},
             };
 
-            static std::string seperator = ": ";
-            static std::string crlf = "\r\n";
+            static const char seperator[] = ": ";
+            static const char crlf[] = "\r\n";
 
             buffers_.clear();
             buffers_.reserve(4*(res_.headers.size()+5)+3);
@@ -397,47 +399,47 @@ namespace crow
 
             for(auto& kv : res_.headers)
             {
-                buffers_.emplace_back(kv.first.data(), kv.first.size());
-                buffers_.emplace_back(seperator.data(), seperator.size());
+                auto& s = detail::field_to_string(kv.first);
+                buffers_.emplace_back(s.data(), s.size());
+                buffers_.emplace_back(seperator, sizeof(seperator) - 1);
                 buffers_.emplace_back(kv.second.data(), kv.second.size());
-                buffers_.emplace_back(crlf.data(), crlf.size());
-
+                buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count("content-length"))
+            if (!res_.headers.count(HTTPField::Content_Length))
             {
                 content_length_ = std::to_string(res_.body.size());
-                static std::string content_length_tag = "Content-Length: ";
-                buffers_.emplace_back(content_length_tag.data(), content_length_tag.size());
+                static const char content_length_tag[] = "Content-Length: ";
+                buffers_.emplace_back(content_length_tag, sizeof(content_length_tag) - 1);
                 buffers_.emplace_back(content_length_.data(), content_length_.size());
-                buffers_.emplace_back(crlf.data(), crlf.size());
+                buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count("server"))
+            if (!res_.headers.count(HTTPField::Server))
             {
-                static std::string server_tag = "Server: ";
-                buffers_.emplace_back(server_tag.data(), server_tag.size());
+                static const char server_tag[] = "Server: ";
+                buffers_.emplace_back(server_tag, sizeof(server_tag) - 1);
                 buffers_.emplace_back(server_name_.data(), server_name_.size());
-                buffers_.emplace_back(crlf.data(), crlf.size());
+                buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            if (!res_.headers.count("date"))
+            if (!res_.headers.count(HTTPField::Date))
             {
-                static std::string date_tag = "Date: ";
+                static const char date_tag[] = "Date: ";
                 date_str_ = get_cached_date_str();
-                buffers_.emplace_back(date_tag.data(), date_tag.size());
+                buffers_.emplace_back(date_tag, sizeof(date_tag) - 1);
                 buffers_.emplace_back(date_str_.data(), date_str_.size());
-                buffers_.emplace_back(crlf.data(), crlf.size());
+                buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
             if (add_keep_alive_)
             {
-                static std::string keep_alive_tag = "Connection: Keep-Alive";
-                buffers_.emplace_back(keep_alive_tag.data(), keep_alive_tag.size());
-                buffers_.emplace_back(crlf.data(), crlf.size());
+                static const char keep_alive_tag[] = "Connection: Keep-Alive";
+                buffers_.emplace_back(keep_alive_tag, sizeof(keep_alive_tag) - 1);
+                buffers_.emplace_back(crlf, sizeof(crlf) - 1);
             }
 
-            buffers_.emplace_back(crlf.data(), crlf.size());
+            buffers_.emplace_back(crlf, sizeof(crlf) - 1);
 
             res_body_copy_.swap(res_.body);
             buffers_.emplace_back(res_body_copy_.data(), res_body_copy_.size());
