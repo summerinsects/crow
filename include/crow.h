@@ -6,6 +6,7 @@
 #include "crow/settings.h"
 #include "crow/socket_adaptors.h"
 #include "crow/json.h"
+#include "crow/json_traits.h"
 #include "crow/mustache.h"
 #include "crow/logging.h"
 #include "crow/dumb_timer_queue.h"

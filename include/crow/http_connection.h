@@ -384,13 +384,9 @@ namespace crow
             buffers_.clear();
             buffers_.reserve(4*(res_.headers.size()+5)+3);
 
-            if (res_.body.empty() && res_.json_value.t() == json::type::Object)
-            {
-                res_.body = json::dump(res_.json_value);
-            }
-
             if (!statusCodes.count(res_.code))
                 res_.code = 500;
+
             {
                 auto& status = statusCodes.find(res_.code)->second;
                 buffers_.emplace_back(status.data(), status.size());

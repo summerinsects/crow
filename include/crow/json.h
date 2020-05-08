@@ -11,6 +11,7 @@
 
 #include "crow/settings.h"
 #include "crow/utility.h"
+#include "crow/json_traits.h"
 
 #if defined(__GNUG__) || defined(__clang__)
 #define crow_json_likely(x) __builtin_expect(x, 1)
@@ -23,11 +24,6 @@
 
 namespace crow
 {
-    namespace mustache
-    {
-        class template_t;
-    }
-
     namespace json
     {
         inline void escape(const std::string& str, std::string& ret)
@@ -173,7 +169,7 @@ namespace crow
                     return os;
                 }
             private:
-                void force(char* s, uint32_t length)
+                void force(char* s, size_t length)
                 {
                     s_ = s;
                     e_ = s_ + length;
@@ -1142,7 +1138,8 @@ namespace crow
 
         class wvalue
         {
-            friend class crow::mustache::template_t;
+            friend struct crow::json_traits<wvalue>;
+
         public:
             type t() const { return t_; }
         private:
@@ -1384,7 +1381,7 @@ namespace crow
                 return (*l)[index];
             }
 
-            int count(const std::string& str)
+            size_t count(const std::string& str) const
             {
                 if (t_ != type::Object)
                     return 0;
@@ -1555,6 +1552,35 @@ namespace crow
         //{
         //}
     }
+
+    template <> struct json_traits<json::wvalue>
+    {
+        typedef json::wvalue value;
+        typedef json::type value_type;
+        typedef std::vector<json::wvalue>::iterator iterator;
+        typedef std::vector<json::wvalue>::iterator const_iterator;
+
+        static bool is_null(const value &v) { return (v.t() == json::type::Null); }
+        static bool is_false(const value &v) { return (v.t() == json::type::False); }
+        static bool is_true(const value &v) { return (v.t() == json::type::True); }
+        static bool is_number(const value &v) { return (v.t() == json::type::Number); }
+        static bool is_string(const value &v) { return (v.t() == json::type::String); }
+        static bool is_array(const value &v) { return (v.t() == json::type::List); }
+        static bool is_object(const value &v) { return (v.t() == json::type::Object); }
+        static std::string dump(const value &v) { return json::dump(v); }
+        static size_t count(const value &v, const char *name) { return v.count(name); }
+        static size_t count(const value &v, const std::string &name) { return v.count(name); }
+        static value &at(value &v, const char *name) { return v[name]; }
+        static value &at(value &v, const std::string &name) { return v[name]; }
+        static bool empty(const value &v) { return (v.l == nullptr || v.l->empty()); }
+        static iterator begin(value &v) { return v.l->begin(); }
+        static iterator end(value &v) { return v.l->end(); }
+        static const_iterator begin(const value &v) { return v.l->begin(); }
+        static const_iterator end(const value &v) { return v.l->end(); }
+        static value_type get_type(const value &v) { return v.t(); }
+        static const char *get_string(const value &v) { return v.s.c_str(); }
+        static value empty_string() { json::wvalue empty_str; empty_str = ""; return empty_str; }
+    };
 }
 
 #undef crow_json_likely

@@ -4,14 +4,17 @@
 #include <fstream>
 #include <iterator>
 #include <functional>
-#include "crow/json.h"
+#include "crow/json_traits.h"
+
 namespace crow
 {
     namespace mustache
     {
-        using context = json::wvalue;
+        template <typename Json, typename Traits>
+        class template_t;
 
-        template_t load(const std::string& filename);
+        template <typename Json, typename Traits>
+        template_t<Json, Traits> load(const std::string& filename);
 
         class invalid_template_exception : public std::exception
         {
@@ -49,6 +52,7 @@ namespace crow
             {}
         };
 
+        template <typename Json, typename Traits = json_traits<Json>>
         class template_t
         {
         public:
@@ -60,11 +64,14 @@ namespace crow
             }
 
         private:
+            typedef Json context;
+
             std::string tag_name(const Action& action)
             {
                 return body_.substr(action.start, action.end - action.start);
             }
-            auto find_context(const std::string& name, const std::vector<context*>& stack)->std::pair<bool, context&>
+
+            std::pair<bool, context&> find_context(const std::string& name, const std::vector<context*>& stack)
             {
                 if (name == ".")
                 {
@@ -75,10 +82,10 @@ namespace crow
                 {
                     for(auto it = stack.rbegin(); it != stack.rend(); ++it)
                     {
-                        if ((*it)->t() == json::type::Object)
+                        if (Traits::is_object(**it))
                         {
-                            if ((*it)->count(name))
-                                return {true, (**it)[name]};
+                            if (Traits::count(**it, name))
+                                return { true, Traits::at(**it, name) };
                         }
                     }
                 }
@@ -103,10 +110,10 @@ namespace crow
                         bool found = true;
                         for(auto jt = names.begin(); jt != names.end(); ++jt)
                         {
-                            if (view->t() == json::type::Object &&
-                                view->count(*jt))
+                            if (Traits::is_object(*view)
+                                && Traits::count(*view, *jt))
                             {
-                                view = &(*view)[*jt];
+                                view = &Traits::at(*view, *jt);
                             }
                             else
                             {
@@ -120,8 +127,7 @@ namespace crow
 
                 }
 
-                static json::wvalue empty_str;
-                empty_str = "";
+                static context empty_str = Traits::empty_string();
                 return {false, empty_str};
             }
 
@@ -163,7 +169,7 @@ namespace crow
                         case ActionType::Partial:
                             {
                                 std::string partial_name = tag_name(action);
-                                auto partial_templ = load(partial_name);
+                                auto partial_templ = load<Json, Traits>(partial_name);
                                 intptr_t partial_indent = action.pos;
                                 partial_templ.render_internal(0, partial_templ.fragments_.size()-1, stack, out, partial_indent?indent+partial_indent:0);
                             }
@@ -173,29 +179,18 @@ namespace crow
                             {
                                 auto optional_ctx = find_context(tag_name(action), stack);
                                 auto& ctx = optional_ctx.second;
-                                switch(ctx.t())
+                                if (Traits::is_null(ctx)) out += "null";
+                                else if (Traits::is_false(ctx)) out += "false";
+                                else if (Traits::is_true(ctx)) out += "true";
+                                else if (Traits::is_number(ctx)) out += Traits::dump(ctx);
+                                else if (Traits::is_string(ctx))
                                 {
-                                    case json::type::Null:
-                                        out += "null";
-                                        break;
-                                    case json::type::False:
-                                        out += "false";
-                                        break;
-                                    case json::type::True:
-                                        out += "true";
-                                        break;
-                                    case json::type::Number:
-                                        out += json::dump(ctx);
-                                        break;
-                                    case json::type::String:
-                                        if (action.t == ActionType::Tag)
-                                            escape(ctx.s, out);
-                                        else
-                                            out += ctx.s;
-                                        break;
-                                    default:
-                                        throw std::runtime_error("not implemented tag type" + std::to_string((int)ctx.t()));
+                                    if (action.t == ActionType::Tag)
+                                        escape(Traits::get_string(ctx), out);
+                                    else
+                                        out += Traits::get_string(ctx);
                                 }
+                                else throw std::runtime_error("not implemented tag type" + std::to_string((int)Traits::get_type(ctx)));
                             }
                             break;
                         case ActionType::ElseBlock:
@@ -209,22 +204,17 @@ namespace crow
                                 }
 
                                 auto& ctx = optional_ctx.second;
-                                switch(ctx.t())
+                                if (Traits::is_array(ctx))
                                 {
-                                    case json::type::List:
-                                        if (ctx.l && !ctx.l->empty())
-                                            current = action.pos;
-                                        else
-                                            stack.emplace_back(&nullContext);
-                                        break;
-                                    case json::type::False:
-                                    case json::type::Null:
-                                        stack.emplace_back(&nullContext);
-                                        break;
-                                    default:
+                                    if (!Traits::empty(ctx))
                                         current = action.pos;
-                                        break;
+                                    else
+                                        stack.emplace_back(&nullContext);
                                 }
+                                else if (Traits::is_false(ctx) || Traits::is_null(ctx))
+                                    stack.emplace_back(&nullContext);
+                                else
+                                    current = action.pos;
                                 break;
                             }
                         case ActionType::OpenBlock:
@@ -237,32 +227,25 @@ namespace crow
                                 }
 
                                 auto& ctx = optional_ctx.second;
-                                switch(ctx.t())
+                                if (Traits::is_array(ctx))
                                 {
-                                    case json::type::List:
-                                        if (ctx.l)
-                                            for(auto it = ctx.l->begin(); it != ctx.l->end(); ++it)
-                                            {
-                                                stack.push_back(&*it);
-                                                render_internal(current+1, action.pos, stack, out, indent);
-                                                stack.pop_back();
-                                            }
-                                        current = action.pos;
-                                        break;
-                                    case json::type::Number:
-                                    case json::type::String:
-                                    case json::type::Object:
-                                    case json::type::True:
-                                        stack.push_back(&ctx);
-                                        break;
-                                    case json::type::False:
-                                    case json::type::Null:
-                                        current = action.pos;
-                                        break;
-                                    default:
-                                        throw std::runtime_error("{{#: not implemented context type: " + std::to_string((int)ctx.t()));
-                                        break;
+                                    if (!Traits::empty(ctx))
+                                    {
+                                        for (auto it = Traits::begin(ctx); it != Traits::end(ctx); ++it)
+                                        {
+                                            stack.push_back(&*it);
+                                            render_internal(current + 1, action.pos, stack, out, indent);
+                                            stack.pop_back();
+                                        }
+                                    }
+                                    current = action.pos;
                                 }
+                                else if (Traits::is_number(ctx) || Traits::is_string(ctx) || Traits::is_object(ctx) || Traits::is_true(ctx))
+                                    stack.push_back(&ctx);
+                                else if (Traits::is_false(ctx) || Traits::is_null(ctx))
+                                    current = action.pos;
+                                else
+                                    throw std::runtime_error("{{#: not implemented context type: " + std::to_string((int)Traits::get_type(ctx)));
                                 break;
                             }
                         case ActionType::CloseBlock:
@@ -514,9 +497,10 @@ namespace crow
             std::string body_;
         };
 
-        inline template_t compile(std::string body)
+        template <typename Json, typename Traits = json_traits<Json>>
+        inline template_t<Json, Traits> compile(std::string body)
         {
-            return template_t(std::move(body));
+            return template_t<Json, Traits>(std::move(body));
         }
 
         namespace detail
@@ -570,9 +554,10 @@ namespace crow
             return detail::get_loader_ref()(filename);
         }
 
-        inline template_t load(const std::string& filename)
+        template <typename Json, typename Traits = json_traits<Json>>
+        inline template_t<Json, Traits> load(const std::string& filename)
         {
-            return compile(detail::get_loader_ref()(filename));
+            return compile<Json, Traits>(detail::get_loader_ref()(filename));
         }
     }
 }
