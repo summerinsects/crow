@@ -600,11 +600,35 @@ template <typename F, typename Set>
             size_t len_;
         };
 
-        // similar to boost::iequals
-        inline static bool iequals(const str_ref &lhs, const str_ref &rhs, const std::locale &loc = std::locale())
+        namespace detail {
+            inline char ascii_tolower(char c) {
+                return ((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c;
+            }
+        }
+
+        inline static bool iequals(const str_ref &lhs, const str_ref &rhs)
         {
-            if (lhs.length() != rhs.length()) return false;
-            return std::equal(lhs.begin(), lhs.end(), rhs.begin(), [&loc](char a, char b) { return std::toupper(a, loc) == std::toupper(b, loc); });
+            auto n = lhs.size();
+            if (rhs.size() != n) return false;
+            auto p1 = lhs.data();
+            auto p2 = rhs.data();
+            char a, b;
+
+            // fast loop
+            while (n--) {
+                a = *p1++;
+                b = *p2++;
+                if (a != b) goto slow;
+            }
+            return true;
+
+        slow:
+            do {
+                if (detail::ascii_tolower(a) != detail::ascii_tolower(b)) return false;
+                a = *p1++;
+                b = *p2++;
+            } while (n--);
+            return true;
         }
 
         // similar to boost::trim
