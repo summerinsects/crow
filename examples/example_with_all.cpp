@@ -4,7 +4,7 @@
 
 class ExampleLogHandler : public crow::ILogHandler {
     public:
-        void log(std::string /*message*/, crow::LogLevel /*level*/) override {
+        void log(const char* /*message*/, crow::LogLevel /*level*/) override {
 //            cerr << "ExampleLogHandler -> " << message;
         }
 };
@@ -73,7 +73,7 @@ int main()
         os << "Params: " << req.url_params << "\n\n"; 
         os << "The key 'foo' was " << (req.url_params.get("foo") == nullptr ? "not " : "") << "found.\n";
         if(req.url_params.get("pew") != nullptr) {
-            double countD = boost::lexical_cast<double>(req.url_params.get("pew"));
+            double countD = atof(req.url_params.get("pew"));
             os << "The value of 'pew' is " <<  countD << '\n';
         }
         auto count = req.url_params.get_list("count");

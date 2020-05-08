@@ -4,7 +4,7 @@
 
 class ExampleLogHandler : public crow::ILogHandler {
     public:
-        void log(std::string message, crow::LogLevel level) override {
+        void log(const char* message, crow::LogLevel level) override {
 //            cerr << "ExampleLogHandler -> " << message;
         }
 };
@@ -93,7 +93,7 @@ int main()
 
     // more json example
     app.route_dynamic("/add_json")
-        .methods(crow::HTTPMethod::POST)
+        .methods(crow::HTTPMethod::Post)
     ([](const crow::request& req){
         auto x = crow::json::load(req.body);
         if (!x)
@@ -110,7 +110,7 @@ int main()
         os << "Params: " << req.url_params << "\n\n"; 
         os << "The key 'foo' was " << (req.url_params.get("foo") == nullptr ? "not " : "") << "found.\n";
         if(req.url_params.get("pew") != nullptr) {
-            double countD = boost::lexical_cast<double>(req.url_params.get("pew"));
+            double countD = atof(req.url_params.get("pew"));
             os << "The value of 'pew' is " <<  countD << '\n';
         }
         auto count = req.url_params.get_list("count");
@@ -122,7 +122,7 @@ int main()
     });    
 
     // ignore all log
-    crow::logger::setLogLevel(crow::LogLevel::DEBUG);
+    crow::logger::setLogLevel(crow::LogLevel::Debug);
     //crow::logger::setHandler(std::make_shared<ExampleLogHandler>());
 
     app.port(18080)

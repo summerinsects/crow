@@ -3,21 +3,17 @@ project (crow_examples)
 
 if (MSVC)
 	add_executable(example_vs example_vs.cpp)
-	target_link_libraries(example_vs ${Boost_LIBRARIES})
 	target_link_libraries(example_vs ${CMAKE_THREAD_LIBS_INIT})
 else ()
 	add_executable(helloworld helloworld.cpp)
-	target_link_libraries(helloworld ${Boost_LIBRARIES})
 	target_link_libraries(helloworld ${CMAKE_THREAD_LIBS_INIT})
 
 if (OPENSSL_FOUND)
 	add_executable(example_ssl ssl/example_ssl.cpp)
-	target_link_libraries(example_ssl ${Boost_LIBRARIES})
 	target_link_libraries(example_ssl ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES})
 endif()
 
 add_executable(example_websocket websocket/example_ws.cpp)
-target_link_libraries(example_websocket ${Boost_LIBRARIES})
 target_link_libraries(example_websocket ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES})
 add_custom_command(OUTPUT ws.html
     COMMAND ${CMAKE_COMMAND} -E
@@ -28,7 +24,6 @@ add_custom_target(example_ws_copy ALL DEPENDS ws.html)
 
 add_executable(example example.cpp)
 #target_link_libraries(example crow)
-target_link_libraries(example ${Boost_LIBRARIES})
 target_link_libraries(example ${CMAKE_THREAD_LIBS_INIT})
 
 if (Tcmalloc_FOUND)
@@ -49,7 +44,6 @@ add_custom_command(OUTPUT example_test.py
 add_custom_target(example_copy ALL DEPENDS example_test.py)
 
 add_executable(example_chat example_chat.cpp)
-target_link_libraries(example_chat ${Boost_LIBRARIES})
 target_link_libraries(example_chat ${CMAKE_THREAD_LIBS_INIT})
 add_custom_command(OUTPUT example_chat.html
 	COMMAND ${CMAKE_COMMAND} -E

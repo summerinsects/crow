@@ -31,8 +31,7 @@ int main()
 
     CROW_ROUTE(app, "/")
     ([]{
-        crow::mustache::context ctx;
-        return crow::mustache::load("example_chat.html").render();
+        return crow::mustache::load<crow::json::wvalue>("example_chat.html").render();
     });
 
     CROW_ROUTE(app, "/logs")

@@ -7,7 +7,7 @@ int main()
 {
     crow::SimpleApp app;
 
-    std::mutex mtx;;
+    std::mutex mtx;
     std::unordered_set<crow::websocket::connection*> users;
 
     CROW_ROUTE(app, "/ws")
@@ -35,10 +35,10 @@ int main()
     ([]{
         char name[256];
         gethostname(name, 256);
-        crow::mustache::context x;
+        crow::json::wvalue x;
         x["servername"] = name;
 	
-        auto page = crow::mustache::load("ws.html");
+        auto page = crow::mustache::load<crow::json::wvalue>("ws.html");
         return page.render(x);
      });
 

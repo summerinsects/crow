@@ -4,7 +4,7 @@
 
 class ExampleLogHandler : public crow::ILogHandler {
     public:
-        void log(std::string /*message*/, crow::LogLevel /*level*/) override {
+        void log(const char* /*message*/, crow::LogLevel /*level*/) override {
 //            cerr << "ExampleLogHandler -> " << message;
         }
 };
@@ -135,7 +135,7 @@ int main()
         // To get a double from the request
         // To see in action submit something like '/params?pew=42'
         if(req.url_params.get("pew") != nullptr) {
-            double countD = boost::lexical_cast<double>(req.url_params.get("pew"));
+            double countD = atof(req.url_params.get("pew"));
             os << "The value of 'pew' is " <<  countD << '\n';
         }
 
@@ -164,7 +164,7 @@ int main()
     });
 
     // enables all log
-    app.loglevel(crow::LogLevel::DEBUG);
+    app.loglevel(crow::LogLevel::Debug);
     //crow::logger::setHandler(std::make_shared<ExampleLogHandler>());
 
     app.port(18080)
