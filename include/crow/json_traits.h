@@ -22,6 +22,8 @@ namespace crow
     //    static size_t count(const value &v, const std::string &name);
     //    static value &at(value &v, const char *name);
     //    static value &at(value &v, const std::string &name);
+    //    static const value &at(const value &v, const char *name);
+    //    static const value &at(const value &v, const std::string &name);
     //    static bool empty(const value &v);
     //    static iterator begin(value &v);
     //    static iterator end(value &v);

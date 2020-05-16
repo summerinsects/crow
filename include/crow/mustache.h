@@ -71,7 +71,7 @@ namespace crow
                 return body_.substr(action.start, action.end - action.start);
             }
 
-            std::pair<bool, context&> find_context(const std::string& name, const std::vector<context*>& stack)
+            std::pair<bool, const context&> find_context(const std::string& name, const std::vector<const context*>& stack)
             {
                 if (name == ".")
                 {
@@ -106,7 +106,7 @@ namespace crow
 
                     for(auto it = stack.rbegin(); it != stack.rend(); ++it)
                     {
-                        context* view = *it;
+                        const context* view = *it;
                         bool found = true;
                         for(auto jt = names.begin(); jt != names.end(); ++jt)
                         {
@@ -149,7 +149,7 @@ namespace crow
                 }
             }
 
-            void render_internal(intptr_t actionBegin, intptr_t actionEnd, std::vector<context*>& stack, std::string& out, intptr_t indent)
+            void render_internal(intptr_t actionBegin, intptr_t actionEnd, std::vector<const context*>& stack, std::string& out, intptr_t indent)
             {
                 intptr_t current = actionBegin;
 
@@ -277,16 +277,16 @@ namespace crow
             std::string render()
             {
                 context empty_ctx;
-                std::vector<context*> stack;
+                std::vector<const context*> stack;
                 stack.emplace_back(&empty_ctx);
 
                 std::string ret;
                 render_internal(0, fragments_.size()-1, stack, ret, 0);
                 return ret;
             }
-            std::string render(context& ctx)
+            std::string render(const context& ctx)
             {
-                std::vector<context*> stack;
+                std::vector<const context*> stack;
                 stack.emplace_back(&ctx);
 
                 std::string ret;

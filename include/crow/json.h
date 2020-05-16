@@ -459,7 +459,7 @@ namespace crow
                 return it != end() && it->key_ == str;
             }
 
-            int count(const std::string& str)
+            int count(const std::string& str) const
             {
                 return has(str) ? 1 : 0;
             }
@@ -1381,6 +1381,17 @@ namespace crow
                 return (*l)[index];
             }
 
+            const wvalue& operator[](unsigned index) const
+            {
+                if (t_ != type::List)
+                    throw std::runtime_error("value is not a list");
+                if (!l)
+                    throw std::runtime_error("list is empty");
+                if (l->size() < index + 1)
+                    throw std::runtime_error("list out of bound");
+                return (*l)[index];
+            }
+
             size_t count(const std::string& str) const
             {
                 if (t_ != type::Object)
@@ -1400,6 +1411,13 @@ namespace crow
                                 std::unordered_map<std::string, wvalue>
                             >(
                             new std::unordered_map<std::string, wvalue>{});
+                return (*o)[str];
+            }
+
+            const wvalue& operator[](const std::string& str) const
+            {
+                if (t_ != type::Object)
+                    throw std::runtime_error("value is not a container");
                 return (*o)[str];
             }
 
@@ -1572,6 +1590,8 @@ namespace crow
         static size_t count(const value &v, const std::string &name) { return v.count(name); }
         static value &at(value &v, const char *name) { return v[name]; }
         static value &at(value &v, const std::string &name) { return v[name]; }
+        static const value &at(const value &v, const char *name) { return v[name]; }
+        static const value &at(const value &v, const std::string &name) { return v[name]; }
         static bool empty(const value &v) { return (v.l == nullptr || v.l->empty()); }
         static iterator begin(value &v) { return v.l->begin(); }
         static iterator end(value &v) { return v.l->end(); }
